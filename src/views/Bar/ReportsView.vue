@@ -85,7 +85,7 @@
   </div>
 </template>
 
-<script>
+<script lang="ts">
 import { ref, onMounted, computed, watch } from 'vue';
 import axios from 'axios';
 

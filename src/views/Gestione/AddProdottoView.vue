@@ -1,14 +1,18 @@
 <script setup lang="ts">
-import { ref, onMounted } from 'vue'
+import { ref, onMounted, computed } from 'vue'
 import { useRouter } from 'vue-router'
 import { useGestioneProductsStore } from '@/stores/Gestione/products'
 import { usePendingChangesStore } from '@/stores/Gestione/pendingChanges'
 import { useFiltersStore } from '@/stores/Gestione/filters'
+import { useAuthStore } from '@/stores/auth'
+import { useGestioniStore } from '@/stores/Admin/gestioni'
 
 const router = useRouter()
 const productsStore = useGestioneProductsStore()
 const pendingChanges = usePendingChangesStore()
 const filtersStore = useFiltersStore()
+const authStore = useAuthStore()
+const gestioniStore = useGestioniStore()
 
 const newProduct = ref({
   title: '',
@@ -18,20 +22,29 @@ const newProduct = ref({
   ingredients: [] as string[],
   tags: [] as string[],
   isActive: true,
-  imageFile: null as File | null
+  imageFile: null as File | null,
+  idGestione: authStore.user?.ruolo === 'admin' ? null : authStore.user?.idGestione // Campo per gestione
 })
 
 const imagePreview = ref('')
 const isSubmitting = ref(false)
 
+// Computed properties
+const isAdmin = computed(() => authStore.user?.ruolo === 'admin')
+const showGestioneSelect = computed(() => isAdmin.value && gestioniStore.gestioni.length > 0)
+
 onMounted(async () => {
   try {
     await filtersStore.initializeFilters()
+
+    // Carica gestioni solo se admin
+    if (isAdmin.value) {
+      await gestioniStore.fetchGestioni()
+    }
   } catch (error) {
-    console.error('Errore durante il caricamento dei filtri:', error)
+    console.error('Errore durante il caricamento:', error)
   }
 
-  // Resetta il form
   newProduct.value = {
     title: '',
     description: '',
@@ -43,7 +56,13 @@ onMounted(async () => {
     imageFile: null
   }
   imagePreview.value = ''
-})
+});
+
+// Aggiunto handler per selezione gestione
+const handleGestioneSelect = (event: Event) => {
+  const select = event.target as HTMLSelectElement
+  newProduct.value.idGestione = parseInt(select.value)
+}
 
 const handleImageUpload = (event: Event) => {
   const input = event.target as HTMLInputElement
@@ -58,36 +77,29 @@ const submitProduct = async () => {
     isSubmitting.value = true
 
     // Validazione campi obbligatori
-    if (!newProduct.value.title.trim() || !newProduct.value.description.trim()) {
+    const requiredFields = [
+      !newProduct.value.title.trim(),
+      !newProduct.value.description.trim(),
+      newProduct.value.quantity <= 0,
+      newProduct.value.price <= 0,
+      isAdmin.value && !newProduct.value.idGestione
+    ]
+
+    if (requiredFields.some(Boolean)) {
       throw new Error('Compila tutti i campi obbligatori')
     }
 
-    if (!newProduct.value.title.trim() ||
-      !newProduct.value.description.trim() ||
-      newProduct.value.quantity <= 0) {
-      throw new Error('La quantita deve essere maggiore di 0')
-    }
-
-    if (newProduct.value.price <= 0) {
-      throw new Error('Il prezzo deve essere maggiore di 0')
-    }
-
     await productsStore.addProduct({
-      title: newProduct.value.title,
-      description: newProduct.value.description,
-      price: newProduct.value.price,
-      quantity: newProduct.value.quantity,
-      ingredients: newProduct.value.ingredients,
-      tags: newProduct.value.tags,
-      isActive: newProduct.value.isActive,
-      imageSrc: imagePreview.value || 'http://figliolo.it:5006/v1/prodotti/image/-1'
+      ...newProduct.value,
+      imageSrc: imagePreview.value || 'http://figliolo.it:5006/v1/prodotti/image/-1',
+      idGestione: newProduct.value.idGestione as number
     })
 
     pendingChanges.clearAllChanges()
-    // router.replace('/gestione/prodotti')
+    router.replace('/gestione/prodotti')
   } catch (error) {
     console.error('Errore durante il salvataggio:', error)
-    alert(`Errore durante il salvataggio: ${error instanceof Error ? error.message : 'Errore sconosciuto'}`)
+    alert(`Errore: ${error instanceof Error ? error.message : 'Errore sconosciuto'}`)
   } finally {
     isSubmitting.value = false
   }
@@ -117,6 +129,28 @@ const submitProduct = async () => {
 
     <div class="form-container">
       <form id="productForm" @submit.prevent="submitProduct">
+
+        <div class="form-section" v-if="isAdmin">
+          <div class="form-group">
+            <label>Seleziona Gestione *</label>
+            <select
+              v-model="newProduct.idGestione"
+              @change="handleGestioneSelect"
+              required
+              class="gestione-select"
+            >
+              <option :value="null" disabled>Seleziona una gestione</option>
+              <option
+                v-for="gestione in gestioniStore.gestioni"
+                :key="gestione.id"
+                :value="gestione.id"
+              >
+                {{ gestione.nome }}
+              </option>
+            </select>
+          </div>
+        </div>
+
         <div class="form-section">
           <div class="form-column">
             <div class="form-group">
@@ -505,6 +539,10 @@ input:checked+.slider:before {
   gap: 0.75rem;
 }
 
+.form-actions button:hover {
+  cursor: pointer;
+}
+
 .cancel-button {
   background: var(--color-background-soft);
   color: var(--color-text);
@@ -533,7 +571,7 @@ input:checked+.slider:before {
 
 .submit-button:disabled {
   opacity: 0.7;
-  cursor: not-allowed;
+  cursor: not-allowed !important;
   background: var(--color-border);
 }
 

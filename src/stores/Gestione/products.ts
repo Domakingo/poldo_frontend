@@ -141,7 +141,7 @@ export const useGestioneProductsStore = defineStore('gestioneProducts', () => {
       if (updates.title !== undefined) formData.append('nome', updates.title)
       if (updates.description !== undefined) formData.append('descrizione', updates.description)
       if (updates.price !== undefined) formData.append('prezzo', updates.price.toFixed(2))
-        if (updates.quantity !== undefined) formData.append('quantita', updates.quantity.toString())
+      if (updates.quantity !== undefined) formData.append('quantita', updates.quantity.toString())
       if (updates.tags !== undefined) formData.append('tags', JSON.stringify(updates.tags))
       if (updates.ingredients !== undefined) formData.append('ingredienti', JSON.stringify(updates.ingredients))
       if (updates.isActive !== undefined) formData.append('attivo', updates.isActive ? '1' : '0')
