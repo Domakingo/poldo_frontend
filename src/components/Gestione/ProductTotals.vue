@@ -224,15 +224,17 @@ const emit = defineEmits(['product-marked-as-prepared'])
 // Function to mark a product as prepared
 const markProductAsPrepared = async (productId: number) => {  try {
     // Use direct fetch with the correct endpoint without leading slash
-    const url = `${API_CONFIG.baseURL}/ordini/prodotti/${productId}/prepara?nTurno=${props.currentTurno}`;
+    const url = `${API_CONFIG.baseURL}/prodotti/${productId}/prepara?nTurno=${props.currentTurno}`;
+    
+    console.log('Marking product as prepared:', url);
     
     const response = await fetch(url, {
       method: 'PUT',
       credentials: 'include',
       mode: 'cors'
-    });
-
-    if (!response.ok) {
+    });    if (!response.ok) {
+      const errorText = await response.text().catch(() => 'Could not read response text');
+      console.error(`API error (${response.status}):`, errorText.substring(0, 150));
       throw new Error(`Errore API: ${response.status} ${response.statusText}`);
     }
 
@@ -268,8 +270,7 @@ const fetchProductsData = async (turno: number = props.currentTurno) => {
     const url = `${API_CONFIG.baseURL}/ordini/classi?startDate=${dateStr}&endDate=${dateStr}&nTurno=${turno}`;
     
     console.log('Fetching from URL:', url);
-    
-    // Use direct fetch call with credentials
+      // Use direct fetch call with credentials
     const response = await fetch(url, {
       credentials: 'include',
       mode: 'cors'
@@ -277,6 +278,15 @@ const fetchProductsData = async (turno: number = props.currentTurno) => {
 
     if (!response.ok) {
       throw new Error(`Errore API: ${response.status} ${response.statusText}`);
+    }
+
+    // Check content type before trying to parse JSON
+    const contentType = response.headers.get('content-type');
+    if (!contentType || !contentType.includes('application/json')) {
+      // Handle non-JSON response
+      const text = await response.text();
+      console.error('Received non-JSON response:', text.substring(0, 100) + '...');
+      throw new Error('La risposta API non è in formato JSON');
     }
 
     const data = await response.json();
@@ -319,10 +329,14 @@ const fetchProductsData = async (turno: number = props.currentTurno) => {
     } else {
       console.error('API response is not an array:', data);
       productsData.value = [];
-    }
-  } catch (error) {
+    }  } catch (error) {
     console.error('Errore nel recupero dei dati dei prodotti:', error);
+    // Show a more detailed error message in the console
+    if (error instanceof SyntaxError) {
+      console.error('Risposta non valida: errore di parsing JSON');
+    }
     // Fall back to client-side calculation if API fails
+    productsData.value = [];
   }
 };
 

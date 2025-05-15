@@ -1,36 +1,9 @@
-// src/stores/ordini.ts
+// src/stores/Gestione/ordini.ts
 import { defineStore } from 'pinia'
-import { ref, computed } from 'vue'
+import { ref } from 'vue'
 import { API_CONFIG } from '@/utils/api'
 
-// Funzione helper per gestire le richieste
-async function handleRequest<T>(
-  endpoint: string,
-  errorMsg: string,
-  init?: RequestInit
-): Promise<T> {
-  const url = `${API_CONFIG.baseURL}${endpoint.startsWith('/') ? endpoint : '/' + endpoint}`;
-  try {
-    const response = await fetch(url, { credentials: 'include', ...init, mode: 'cors' });
-
-    if (!response.ok) {
-      const errorText = await response.text();
-      throw new Error(`${errorMsg}: ${response.status} — ${errorText}`);
-    }
-
-    const contentType = response.headers.get('content-type');
-    if (contentType?.includes('application/json')) {
-      return await response.json();
-    }
-    return {} as T;
-
-  } catch (error: any) {
-    console.error('Request failed:', error);
-    throw new Error(`${errorMsg}: ${error.message}`);
-  }
-}
-
-// Interfacce
+// Interfaces
 export interface Product {
   idProdotto: number
   nome: string
@@ -66,6 +39,51 @@ export interface ClassOrder {
   userRole?: string
 }
 
+// Helper function to handle API requests
+async function handleRequest<T>(
+  endpoint: string,
+  errorMsg: string,
+  init?: RequestInit
+): Promise<T> {
+  const url = `${API_CONFIG.baseURL}${endpoint.startsWith('/') ? endpoint : '/' + endpoint}`;
+  
+  console.log('Fetching from URL:', url);
+  
+  try {
+    const response = await fetch(url, { credentials: 'include', ...init, mode: 'cors' });
+    
+    // Handle 404 errors by returning an empty array
+    if (response.status === 404) {
+      console.warn(`Nessun dato trovato per ${endpoint}`);
+      return [] as any;
+    }
+
+    if (!response.ok) {
+      const errorText = await response.text();
+      throw new Error(`${errorMsg}: ${response.status} — ${errorText}`);
+    }
+
+    const contentType = response.headers.get('content-type');
+    
+    if (contentType?.includes('application/json')) {
+      try {
+        return await response.json();
+      } catch (jsonError) {
+        console.error('Failed to parse JSON response:', jsonError);
+        console.error('Response text:', await response.clone().text().catch(() => 'Could not read response text'));
+        throw new Error(`${errorMsg}: Invalid JSON response`);
+      }
+    } else {
+      console.warn(`Response is not JSON (${contentType}):`, await response.text().catch(() => 'Could not read response text'));
+      return [] as any;
+    }
+
+  } catch (error: any) {
+    console.error('Request failed:', error);
+    throw new Error(`${errorMsg}: ${error.message}`);
+  }
+}
+
 export const useOrdiniStore = defineStore('ordini', () => {
   // State
   const classOrders = ref<ClassOrder[]>([])
@@ -82,6 +100,7 @@ export const useOrdiniStore = defineStore('ordini', () => {
     const day = String(date.getDate()).padStart(2, '0')
     return `${year}-${month}-${day}`
   }
+  
   // Funzione per recuperare i dati dell'utente
   async function fetchUserById(userId: number) {
     if (userCache.value[userId]) return userCache.value[userId]
@@ -98,16 +117,28 @@ export const useOrdiniStore = defineStore('ordini', () => {
       return null
     }
   }
+  
   // Recupera gli ordini dei professori
   async function fetchProfOrders() {
     loading.value = true
     try {
-      const data = await handleRequest<any[]>(
-        `ordini?startDate=${selectedDate.value}&endDate=${selectedDate.value}`,
+      const response = await handleRequest<any>(
+        `ordini/classi?startDate=${selectedDate.value}&endDate=${selectedDate.value}&nTurno=2`,
         'Errore nel recupero degli ordini dei professori'
       )
 
-      const professorOrders = data.filter((order: any) => order.oraRitiro !== null && order.oraRitiro !== undefined)
+      // Assicurati che i dati siano un array
+      let data = [];
+      
+      if (Array.isArray(response)) {
+        data = response;
+      } else if (response && typeof response === 'object') {
+        data = response.error ? [] : [response];
+      }
+      
+      const professorOrders = data.filter((order: any) => 
+        order && order.oraRitiro !== null && order.oraRitiro !== undefined
+      );
       const processedOrders = []
       
       for (const order of professorOrders) {
@@ -142,14 +173,23 @@ export const useOrdiniStore = defineStore('ordini', () => {
       loading.value = false
     }
   }
-  // Recupera gli ordini per classe
+    // Recupera gli ordini per classe
   async function fetchClassOrders(turno: number) {
     loading.value = true
     try {
-      const data = await handleRequest<any[]>(
+      const response = await handleRequest<any>(
         `ordini/classi?startDate=${selectedDate.value}&endDate=${selectedDate.value}&nTurno=${turno}`,
         'Errore nel recupero degli ordini per classe'
       )
+      
+      // Assicurati che i dati siano un array
+      let data = [];
+      
+      if (Array.isArray(response)) {
+        data = response;
+      } else if (response && typeof response === 'object') {
+        data = response.error ? [] : [response];
+      }
       
       // Filtra gli ordini per il turno selezionato
       classOrders.value = data.map((order: any) => ({
@@ -162,10 +202,12 @@ export const useOrdiniStore = defineStore('ordini', () => {
     } catch (err) {
       console.error('Errore nel recupero degli ordini per classe:', err)
       error.value = 'Errore nel caricamento degli ordini per classe.'
+      classOrders.value = []
     } finally {
       loading.value = false
     }
   }
+  
   // Funzione per segnare un ordine come preparato
   async function markOrderAsPrepared(classe: string, turno: number) {
     try {
