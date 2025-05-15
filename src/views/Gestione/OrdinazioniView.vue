@@ -14,20 +14,13 @@ const turnoStore = useTurnoStore()
 
 // // API configurazione
 // const API_CONFIG = {
-//   BASE_URL: 'http://figliolo.it:5005/v1',
+//   BASE_URL: 'http://figliolo.it:5006/v1',
 //   TOKEN: "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZCI6NDgsInJ1b2xvIjoiYWRtaW4iLCJpYXQiOjE3NDQyNzk2ODMsImV4cCI6MTc3NTgzNzI4M30.AelK6BkvrydKSqNGuXbzWGzST4yctrHvdjy66XeoMHI"
 // }
 const API_CONFIG = {
-  BASE_URL: 'http://figliolo.it:5005/v1',
+  BASE_URL: 'http://figliolo.it:5006/v1',
   TOKEN: "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZCI6NDgsInJ1b2xvIjoiYWRtaW4iLCJpYXQiOjE3NDQyNzk2ODMsImV4cCI6MTc3NTgzNzI4M30.AelK6BkvrydKSqNGuXbzWGzST4yctrHvdjy66XeoMHI"
 }
-
-// Headers per le chiamate API
-const headers = new Headers({
-  Authorization: `Bearer ${API_CONFIG.TOKEN}`,
-  Accept: 'application/json',
-  'Content-Type': 'application/json'
-})
 
 // Interfacce
 interface Product {
@@ -46,10 +39,10 @@ interface Order {
   classe: string
   confermato: boolean
   preparato: boolean
-  oraRitiro?: string 
+  oraRitiro?: string
   prodotti: Product[]
-  userRole?: string 
-  userData?: any 
+  userRole?: string
+  userData?: any
 }
 
 interface ClassOrder {
@@ -62,8 +55,8 @@ interface ClassOrder {
 }
 
 // Ref
-const classOrders = ref<ClassOrder[]>([]) 
-const profOrders = ref<Order[]>([]) 
+const classOrders = ref<ClassOrder[]>([])
+const profOrders = ref<Order[]>([])
 const loading = ref(true)
 const error = ref<string | null>(null)
 const selectedTurno = ref(1)
@@ -89,15 +82,15 @@ const showProfessorTimeline = computed(() => {
 const userCache = ref<{[key: number]: any}>({});
 const fetchUserById = async (userId: number) => {
   if (userCache.value[userId]) return userCache.value[userId];
-  
+
   try {
-    const response = await fetch(`${API_CONFIG.BASE_URL}/utenti/${userId}`, { headers }); 
+    const response = await fetch(`${API_CONFIG.BASE_URL}/utenti/${userId}`, { credentials: 'include' });
     if (!response.ok) {
       throw new Error(`Impossibile recuperare i dati dell'utente con ID ${userId}`);
     }
     const userData = await response.json();
     userCache.value[userId] = userData;
-    
+
     return userData;
   } catch (error) {
     console.error(`Errore nel recupero dei dati dell'utente con ID ${userId}:`, error);
@@ -110,11 +103,11 @@ const fetchProfOrders = async () => {
   loading.value = true
   try {
     const url = `${API_CONFIG.BASE_URL}/ordini?startDate=${selectedDate.value}&endDate=${selectedDate.value}`;
-    const response = await fetch(url, { headers })
-    
+    const response = await fetch(url, { credentials: 'include' })
+
     if (!response.ok) throw new Error(`Errore API con stato ${response.status}`)
     const data = await response.json()
-    
+
     const professorOrders = data.filter((order: any) => order.oraRitiro !== null && order.oraRitiro !== undefined);
     const processedOrders = [];
     for (const order of professorOrders) {
@@ -126,20 +119,20 @@ const fetchProfOrders = async () => {
           userRole: 'prof',
           oraRitiro: order.oraRitiro
         };
-        
+
         if (order.user) {
           const userData = await fetchUserById(order.user);
           if (userData) {
             processedOrder.userData = userData;
           }
         }
-        
+
         processedOrders.push(processedOrder);
       } catch (err) {
         console.error("Errore nell'elaborazione dell'ordine del professore:", err, order);
       }
     }
-    
+
     profOrders.value = processedOrders;
   } catch (err) {
     console.error('Errore nel recupero degli ordini dei professori:', err)
@@ -154,12 +147,12 @@ const fetchProfOrders = async () => {
 const fetchClassOrders = async () => {
   loading.value = true
   try {
-    const response = await fetch(`${API_CONFIG.BASE_URL}/ordini/classi?startDate=${selectedDate.value}&endDate=${selectedDate.value}&nTurno=${selectedTurno.value}`, { headers })
+    const response = await fetch(`${API_CONFIG.BASE_URL}/ordini/classi?startDate=${selectedDate.value}&endDate=${selectedDate.value}&nTurno=${selectedTurno.value}`, { credentials: 'include' })
     if (!response.ok) {
       throw new Error(`Errore API con stato ${response.status}`)
     }
     const data = await response.json()
-    
+
     // Filtra gli ordini per il turno selezionato
     classOrders.value = data
       .map((order: any) => ({
@@ -177,7 +170,7 @@ const fetchClassOrders = async () => {
   }
 }
 
-// Orari del turno selezionato  
+// Orari del turno selezionato
 const selectedTurnoTimes = computed(() => {
   if (showProfessorTimeline.value) {
     return {
@@ -187,15 +180,15 @@ const selectedTurnoTimes = computed(() => {
       pickupEnd: '15:00'
     };
   }
-  
+
   const turno = turnoStore.turni.find(t => t.n === selectedTurno.value)
-  
+
   if (!turno) {
     console.error(`Turno ${selectedTurno.value} not found!`);
     error.value = `Turno ${selectedTurno.value} non trovato. Selezionare un altro turno.`
     return null
   }
-  
+
   return {
     orderStart: turno.oraInizio,
     orderEnd: turno.oraFine,
@@ -208,9 +201,9 @@ const selectedTurnoTimes = computed(() => {
 const handleTurnoChange = async (turno: number) => {
   selectedTurno.value = turno;
   turnoStore.selectTurno(turno);
-  
+
   await fetchProfOrders();
-  
+
   if (turno === 2) {
     classOrders.value = profOrders.value.map(order => ({
       ...order,
@@ -232,7 +225,7 @@ const handleOrderMarkedAsPrepared = async ({ classe, turno }: { classe: string, 
   // Refresh the orders after an order is marked as prepared
   if (turno === 2) {
     await fetchProfOrders()
-    
+
     classOrders.value = profOrders.value.map(order => ({
       ...order,
       classe: order.classe,
@@ -253,7 +246,7 @@ const handleProductMarkedAsPrepared = async ({ productId, turno }: { productId: 
   // Refresh the orders after a product is marked as prepared
   if (turno === 2) {
     await fetchProfOrders()
-    
+
     classOrders.value = profOrders.value.map(order => ({
       ...order,
       classe: order.classe,
@@ -274,15 +267,15 @@ const handleProductMarkedAsPrepared = async ({ productId, turno }: { productId: 
 onMounted(async () => {
   await turnoStore.fetchTurni()
   await fetchProfOrders()
-  
+
   if (turnoStore.turnoSelezionato > 0) {
     selectedTurno.value = turnoStore.turnoSelezionato
   } else if (availableTurni.value.length > 0) {
     selectedTurno.value = availableTurni.value[0].n
   }
-  
+
   turnoStore.selectTurno(selectedTurno.value)
-  
+
   if (selectedTurno.value === 2) {
     classOrders.value = profOrders.value.map(order => ({
       ...order,
@@ -315,28 +308,28 @@ onMounted(async () => {
     <div v-else>
 
       <!-- Timeline per gli ordini dei professori -->
-      <ProfessorTimeline 
+      <ProfessorTimeline
         v-if="showProfessorTimeline"
-        :profOrders="profOrders" 
+        :profOrders="profOrders"
         :turnoTimes="selectedTurnoTimes"
         @reload="fetchProfOrders"
       />
 
       <!-- Sezione ordini -->
       <div class="orders-section">
-        <TurnoTabs 
-          :availableTurni="availableTurni" 
+        <TurnoTabs
+          :availableTurni="availableTurni"
           :selectedTurno="selectedTurno"
           @turnoChange="handleTurnoChange"
         />
 
         <div class="orders-content">
-          <ProductTotals 
-            :classOrders="classOrders" 
-            :currentTurno="selectedTurno" 
-            @product-marked-as-prepared="handleProductMarkedAsPrepared" 
+          <ProductTotals
+            :classOrders="classOrders"
+            :currentTurno="selectedTurno"
+            @product-marked-as-prepared="handleProductMarkedAsPrepared"
           />
-          <ClassOrders 
+          <ClassOrders
             :classOrders="classOrders"
             :selectedTurno="selectedTurno"
             @orderMarkedAsPrepared="handleOrderMarkedAsPrepared"
@@ -346,9 +339,9 @@ onMounted(async () => {
     </div>
 
     <!-- Modal per i dettagli degli ordini -->
-    <Alert 
-      v-if="showOrderDetails" 
-      type="info" 
+    <Alert
+      v-if="showOrderDetails"
+      type="info"
       :message="'Dettagli Ordini'"
       @close="showOrderDetails = false"
     >
@@ -410,7 +403,7 @@ h1 {
   flex: 1;
   display: flex;
   flex-direction: column;
-  height: calc(80vh - 200px); 
+  height: calc(80vh - 200px);
   overflow: hidden;
 }
 

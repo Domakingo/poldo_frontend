@@ -23,31 +23,25 @@ export const useCartStore = defineStore(
 
     async function getOrdineByTurno() {
         const currentTurno = turnoStore.turnoSelezionato
-      
-        const headers = {
-          'Content-Type': 'application/json',
-          Authorization:
-            'Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZCI6NTAsInJ1b2xvIjoicGFuaW5hcm8iLCJpYXQiOjE3NDQzMDc2ODgsImV4cCI6MTc3NTg2NTI4OH0.noyJJ5yLRAdZ4bxIOGdlYBjSZQElmXV4KOqGGVJHl_Q',
-        }
-      
+
         try {
-          const response = await fetch(`http://figliolo.it:5005/v1/ordini/me?nTurno=${currentTurno}`, {
+          const response = await fetch(`http://figliolo.it:5006/v1/ordini/me?nTurno=${currentTurno}`, {
             method: 'GET',
-            headers: headers,
+            credentials: 'include'
           })
-      
+
           if (!response.ok) {
             console.error('nessun ordine gia effettuato x questo turno')
             return false
           }
-      
+
           const data = await response.json()
           const ordine = data[0]
-      
+
           if (!ordine || ordine.prodotti.length === 0) {
             return false
           }
-      
+
           itemsByTurno.value[currentTurno] = ordine.prodotti.map((item: any) => ({
             id: item.idProdotto,
             quantity: item.quantita,
@@ -93,53 +87,47 @@ export const useCartStore = defineStore(
     async function confirmCart(): Promise<{ ok: boolean; message: string }> {
         const turno = currentTurno.value
         const cart = itemsByTurno.value[turno]
-      
+
         if (cart.length === 0) {
           console.error('Carrello vuoto')
           return { ok: false, message: 'Carrello vuoto' }
         }
-      
+
         const cartData = cart.map((item) => ({
           idProdotto: item.id,
           quantita: item.quantity,
         }))
-      
+
         const body = {
           nTurno: turno,
           prodotti: cartData,
         }
-      
-        const headers = {
-          'Content-Type': 'application/json',
-          Authorization:
-            'Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZCI6NTAsInJ1b2xvIjoicGFuaW5hcm8iLCJpYXQiOjE3NDQzMDc2ODgsImV4cCI6MTc3NTg2NTI4OH0.noyJJ5yLRAdZ4bxIOGdlYBjSZQElmXV4KOqGGVJHl_Q',
-        }
-      
+
         try {
-          const response = await fetch('http://figliolo.it:5005/v1/ordini', {
+          const response = await fetch('http://figliolo.it:5006/v1/ordini', {
             method: 'POST',
-            headers,
+            credentials: 'include',
             body: JSON.stringify(body),
           })
-      
+
           const data = await response.json()
-      
+
           if (!response.ok || data.error) {
             const msg = data.error || 'Errore durante la conferma dell’ordine'
             console.error('Errore:', msg)
             return { ok: false, message: msg }
           }
-      
+
           console.log('Carrello confermato:', data)
           clearCart()
           return { ok: true, message: 'Carrello confermato con successo' }
-      
+
         } catch (error) {
           console.error('Errore di rete:', error)
           return { ok: false, message: 'Errore di rete: impossibile contattare il server' }
         }
       }
-      
+
 
     return {
       itemsByTurno,

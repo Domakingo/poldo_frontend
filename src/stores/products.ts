@@ -15,16 +15,10 @@ export interface Product {
 }
 
 const API_CONFIG = {
-    BASE_URL: '/api',
-    TOKEN: "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZCI6NTAsInJ1b2xvIjoicGFuaW5hcm8iLCJpYXQiOjE3NDQzMDc2ODgsImV4cCI6MTc3NTg2NTI4OH0.noyJJ5yLRAdZ4bxIOGdlYBjSZQElmXV4KOqGGVJHl_Q",
-    DEFAULT_IMAGE: "https://lh3.googleusercontent.com/a/ACg8ocLPv09a9-uNbEG-ZfRm5bWQUlyLOpBaKxHz88de_c6vB8RvQ_Plrg=s96-c"
-  }
-
-const headers = new Headers({
-  Authorization: `Bearer ${API_CONFIG.TOKEN}`,
-  Accept: 'application/json',
-  'Content-Type': 'application/json'
-})
+  BASE_URL: 'http://figliolo.it:5006/v1',
+  TOKEN: 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZEdlc3Rpb25lIjoxLCJydW9sbyI6Imdlc3RvcmUiLCJpZCI6MTksImlhdCI6MTc0NDMwNzg0MiwiZXhwIjoxNzc1ODY1NDQyfQ.HMNTe1h81A80p-BawzVj44zSBGBVMYZRdp_vDxE2j9k',
+  DEFAULT_IMAGE: 'http://figliolo.it:5006/v1/prodotti/image/-1'
+}
 
 async function handleRequest<T>(
   endpoint: string,
@@ -33,7 +27,7 @@ async function handleRequest<T>(
 ): Promise<T> {
   const url = `${API_CONFIG.BASE_URL}/${endpoint}`;
   try {
-    const response = await fetch(url, { headers, ...init, mode: 'cors' });
+    const response = await fetch(url, { credentials: 'include', ...init, mode: 'cors' });
 
     if (!response.ok) {
       const errorText = await response.text();
@@ -75,9 +69,7 @@ export const useProductsStore = defineStore('products', () => {
   async function fetchDefaultImage() {
     try {
       const response = await fetch(API_CONFIG.DEFAULT_IMAGE, {
-        headers: new Headers({
-          Authorization: `Bearer ${API_CONFIG.TOKEN}`
-        })
+        credentials: 'include'
       })
 
       if (!response.ok) {
@@ -127,9 +119,7 @@ export const useProductsStore = defineStore('products', () => {
   async function checkImageExists(url: string): Promise<boolean> {
     try {
       const response = await fetch(url, {
-        headers: new Headers({
-          Authorization: `Bearer ${API_CONFIG.TOKEN}`
-        })
+        credentials: 'include'
       })
       return response.ok
     } catch {

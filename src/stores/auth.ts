@@ -14,9 +14,9 @@ export const useAuthStore = defineStore('auth', () => {
   const checkAuth = async () => {
   try {
     loading.value = true
-    const response = await fetch('http://l.figliolo.it:5005/v1/auth/check', {
+    const response = await fetch('http://figliolo.it:5006/v1/auth/check', {
       method: 'GET',
-      credentials: 'include',
+      credentials: 'include'
     })
 
     console.log('Response:', response)

@@ -4,12 +4,12 @@ import ProdottiView from '../views/ProdottiView.vue'
 import CarrelloView from '../views/CarrelloView.vue'
 import { useTurnoStore } from '../stores/turno'
 import AuthView from '@/views/AuthView.vue'
-import ReportsView from '@/views/bar/ReportsView.vue'
+import ReportsView from '@/views/Bar/ReportsView.vue'
 import AddProdottoView from '../views/Gestione/AddProdottoView.vue'
 import ModificaView from '../views/Gestione/ProdottiView.vue'
-import UtentiView from '@/views/UtentiView.vue'
 import OrdinazioniView from '@/views/Gestione/OrdinazioniView.vue'
 import OrdinazioniProf from '@/views/Gestione/OrdinazioniProf.vue'
+import UtentiView from '@/views/UtentiView.vue'
 import QRView from '../views/QrView.vue'
 import LoginView from '@/views/LoginView.vue'
 import { useAuthStore } from '@/stores/auth'
@@ -31,15 +31,15 @@ const router = createRouter({
     {
       path: '/prodotti',
       name: 'prodotti',
-      component: ProdottiView,
-      meta: { requiresTurno: true, autenticated: true, role: ['admin','terminale','prof','segreteria','paninaro','studente','gestore'] }
+      component: ProdottiView
     },
     {
       path: '/carrello',
       name: 'carrello',
       component: CarrelloView,
       meta: { requiresTurno: true, autenticated: true, role: ['admin','terminale','prof','segreteria','paninaro','studente','gestore']  }
-    },{
+    },
+    {
         path: '/qr',
         name: 'QRCode',
         component: QRView,
@@ -96,12 +96,12 @@ router.beforeEach(async (to, from, next) => {
         next({ name: 'home' })
         return
     }
-    
+
     if(!to.meta.autenticated){
         next()
         return
     }
-    
+
     const authStore = useAuthStore()
     const logged = await authStore.checkAuth()
 
@@ -133,7 +133,7 @@ router.beforeEach(async (to, from, next) => {
     }
 
     next()
-
-})
+  }
+)
 
 export default router

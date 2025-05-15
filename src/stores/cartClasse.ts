@@ -34,16 +34,11 @@ export const useCartClasseStore = defineStore('cartClasse', () => {
   const currentTurno = computed(() => turnoStore.turnoSelezionato)
 
   async function getOrdine(): Promise<{status: true, ordine: OrdineClasse} | {status: false, ordine: null}> {
-    const headers = {
-      'Content-Type': 'application/json',
-      Authorization:
-        'Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZCI6NTAsInJ1b2xvIjoicGFuaW5hcm8iLCJpYXQiOjE3NDQzMDc2ODgsImV4cCI6MTc3NTg2NTI4OH0.noyJJ5yLRAdZ4bxIOGdlYBjSZQElmXV4KOqGGVJHl_Q',
-    }
 
     try {
       const response = await fetch(
-        `http://figliolo.it:5005/v1/ordini/classi/me/oggi?nTurno=${currentTurno.value}`,
-        { method: 'GET', headers },
+        `http://figliolo.it:5006/v1/ordini/classi/me/oggi?nTurno=${currentTurno.value}`,
+        { method: 'GET', credentials: 'include' },
       )
 
       if (!response.ok) {
@@ -87,15 +82,10 @@ export const useCartClasseStore = defineStore('cartClasse', () => {
   }
 
   async function confOrd(id: number, status: boolean) : Promise<true | false> {
-    const headers = {
-      'Content-Type': 'application/json',
-      Authorization:
-        'Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZCI6NTAsInJ1b2xvIjoicGFuaW5hcm8iLCJpYXQiOjE3NDQzMDc2ODgsImV4cCI6MTc3NTg2NTI4OH0.noyJJ5yLRAdZ4bxIOGdlYBjSZQElmXV4KOqGGVJHl_Q',
-    }
 
-    const result = await fetch(`http://figliolo.it:5005/v1/ordini/classi/me/conferma/${id}`, {
+    const result = await fetch(`http://figliolo.it:5006/v1/ordini/classi/me/conferma/${id}`, {
       method: 'PATCH',
-      headers,
+      credentials: 'include',
       body: JSON.stringify({
         nTurno: currentTurno.value,
         confermato: status,
@@ -114,27 +104,22 @@ export const useCartClasseStore = defineStore('cartClasse', () => {
   }
 
   async function confOrdClasse() : Promise<true | false> {
-    const headers = {
-        'Content-Type': 'application/json',
-        Authorization:
-          'Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZCI6NTAsInJ1b2xvIjoicGFuaW5hcm8iLCJpYXQiOjE3NDQzMDc2ODgsImV4cCI6MTc3NTg2NTI4OH0.noyJJ5yLRAdZ4bxIOGdlYBjSZQElmXV4KOqGGVJHl_Q',
-      }
-  
-      const result = await fetch(`http://figliolo.it:5005/v1/ordini/classi/me/conferma`, {
+
+      const result = await fetch(`http://figliolo.it:5006/v1/ordini/classi/me/conferma`, {
         method: 'PUT',
-        headers,
+        credentials: 'include',
         body: JSON.stringify({
           nTurno: currentTurno.value,
         }),
       })
-  
+
       console.log('result', result)
-  
+
       if (!result.ok) {
         console.error('Error confirming order:', result.statusText)
         return false
       }
-  
+
       return true
   }
 

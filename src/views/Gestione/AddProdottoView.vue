@@ -80,7 +80,7 @@ const submitProduct = async () => {
       ingredients: newProduct.value.ingredients,
       tags: newProduct.value.tags,
       isActive: newProduct.value.isActive,
-      imageSrc: imagePreview.value || 'http://localhost:5000/v1/prodotti/image/-1'
+      imageSrc: imagePreview.value || 'http://figliolo.it:5006/v1/prodotti/image/-1'
     })
 
     pendingChanges.clearAllChanges()

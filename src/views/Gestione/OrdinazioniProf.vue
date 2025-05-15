@@ -1,61 +1,61 @@
 <template>
-  <div class="ordinazioni-prof-view">    
+  <div class="ordinazioni-prof-view">
     <!-- Loading and error handling -->
     <div v-if="loading" class="loading-indicator">
       <p>Caricamento ordinazioni...</p>
     </div>
-    
+
     <div v-else-if="error" class="error-message">
       <p>{{ error }}</p>
       <button @click="fetchOrders">Riprova</button>
     </div>
-    
+
     <div v-else-if="professorOrders.length === 0" class="no-data">
       <p>Nessun ordine dei professori trovato per la data selezionata.</p>
     </div>
-    
+
     <div v-else>      <!-- Timeline section (40% height) -->      <div class="timeline-container">
-        <ProfessorTimeline 
-          :profOrders="professorOrders" 
+        <ProfessorTimeline
+          :profOrders="professorOrders"
           :turnoTimes="turnoTimes"
           :isDetailView="true"
-          @reload="fetchOrders" 
+          @reload="fetchOrders"
         />
       </div>
-      
+
       <!-- Horizontal line separator -->
       <hr class="section-divider">
-      
+
       <!-- Controls for time range selection -->
       <div class="timerange-controls">
         <div class="time-selector">
           <label for="start-time">Dalle ore:</label>
-          <input 
-            type="time" 
-            id="start-time" 
-            v-model="startTime" 
+          <input
+            type="time"
+            id="start-time"
+            v-model="startTime"
             @change="updateTimerange"
           />
         </div>
         <div class="time-selector">
           <label for="end-time">Alle ore:</label>
-          <input 
-            type="time" 
-            id="end-time" 
-            v-model="endTime" 
+          <input
+            type="time"
+            id="end-time"
+            v-model="endTime"
             @change="updateTimerange"
           />
         </div>
         <button class="apply-btn" @click="applyTimeFilter">Applica</button>
       </div>
-      
+
       <!-- Bottom section (60% height) -->
       <div class="content-container">
         <!-- Product totals (left) -->
-          <ProductTotals 
+          <ProductTotals
             :classOrders="filteredOrders"
           />
-        
+
         <!-- Orders list (right) -->
         <div class="orders-list">
           <h2>Lista Ordini</h2>
@@ -63,9 +63,9 @@
             Nessun ordine nel periodo selezionato
           </div>
           <div v-else class="orders-container">
-            <div 
-              v-for="order in filteredOrders" 
-              :key="order.idOrdine" 
+            <div
+              v-for="order in filteredOrders"
+              :key="order.idOrdine"
               class="order-item"
               :class="{ 'order-prepared': order.preparato }"
             >
@@ -74,9 +74,9 @@
                 <div v-if="order.oraRitiro" class="order-time">
                   Ritiro: {{ formatTime(order.oraRitiro) }}
                 </div>
-                
-                <button 
-                  v-if="!order.preparato" 
+
+                <button
+                  v-if="!order.preparato"
                   class="mark-prepared-btn"
                   @click="markOrderAsPrepared(order)"
                   title="Segna come preparato"
@@ -85,14 +85,14 @@
                     <polyline points="20 6 9 17 4 12"></polyline>
                   </svg>
                 </button>
-                
+
                 <div v-if="order.preparato" class="prepared-badge">Preparato</div>
               </div>
-              
+
               <div class="order-products">
-                <div 
-                  v-for="product in order.prodotti" 
-                  :key="product.idProdotto" 
+                <div
+                  v-for="product in order.prodotti"
+                  :key="product.idProdotto"
                   class="order-product"
                 >
                   <span class="product-quantity">x{{ product.quantita }}</span>
@@ -123,21 +123,14 @@ const turnoStore = useTurnoStore()
 
 // // API configurazione
 // const API_CONFIG = {
-//   BASE_URL: 'http://figliolo.it:5005/v1',
+//   BASE_URL: 'http://figliolo.it:5006/v1',
 //   TOKEN: "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZCI6NDgsInJ1b2xvIjoiYWRtaW4iLCJpYXQiOjE3NDQyNzk2ODMsImV4cCI6MTc3NTgzNzI4M30.AelK6BkvrydKSqNGuXbzWGzST4yctrHvdjy66XeoMHI"
 // }
 // API configurazione
 const API_CONFIG = {
-  BASE_URL: 'http://figliolo.it:5005/v1',
+  BASE_URL: 'http://figliolo.it:5006/v1',
   TOKEN: "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZCI6NDgsInJ1b2xvIjoiYWRtaW4iLCJpYXQiOjE3NDQyNzk2ODMsImV4cCI6MTc3NTgzNzI4M30.AelK6BkvrydKSqNGuXbzWGzST4yctrHvdjy66XeoMHI"
 }
-
-// Headers per le chiamate API
-const headers = new Headers({
-  Authorization: `Bearer ${API_CONFIG.TOKEN}`,
-  Accept: 'application/json',
-  'Content-Type': 'application/json'
-})
 
 interface Product {
   idProdotto: number;
@@ -196,15 +189,15 @@ const selectedDate = ref(formatDate(new Date()))
 // Fetch user data by ID
 const fetchUserById = async (userId: number) => {
   if (userCache.value[userId]) return userCache.value[userId];
-  
+
   try {
-    const response = await fetch(`${API_CONFIG.BASE_URL}/utenti/${userId}`, { headers }); 
+    const response = await fetch(`${API_CONFIG.BASE_URL}/utenti/${userId}`, { credentials: 'include' });
     if (!response.ok) {
       throw new Error(`Impossibile recuperare i dati dell'utente con ID ${userId}`);
     }
     const userData = await response.json();
     userCache.value[userId] = userData;
-    
+
     return userData;
   } catch (error) {
     console.error(`Errore nel recupero dei dati dell'utente con ID ${userId}:`, error);
@@ -216,20 +209,20 @@ const fetchUserById = async (userId: number) => {
 const fetchOrders = async () => {
   loading.value = true
   error.value = ''
-  
+
   try {
     const url = `${API_CONFIG.BASE_URL}/ordini?startDate=${selectedDate.value}&endDate=${selectedDate.value}`;
-    const response = await fetch(url, { headers })
-    
+    const response = await fetch(url, { credentials: 'include' })
+
     if (!response.ok) throw new Error(`Errore API con stato ${response.status}`)
     const data = await response.json()
-    
+
     allOrders.value = data
-    
+
     // Filtra gli ordini dei professori (quelli con oraRitiro)
     const professorOrdersData = data.filter((order: any) => order.oraRitiro !== null && order.oraRitiro !== undefined);
     const processedOrders = [];
-    
+
     for (const order of professorOrdersData) {
       try {
         const processedOrder = {
@@ -239,22 +232,22 @@ const fetchOrders = async () => {
           userRole: 'prof',
           oraRitiro: order.oraRitiro
         };
-        
+
         if (order.user) {
           const userData = await fetchUserById(order.user);
           if (userData) {
             processedOrder.userData = userData;
           }
         }
-        
+
         processedOrders.push(processedOrder);
       } catch (err) {
         console.error("Errore nell'elaborazione dell'ordine del professore:", err, order);
       }
     }
-    
+
     professorOrders.value = processedOrders;
-    
+
   } catch (err) {
     error.value = 'Errore nel caricamento degli ordini'
     console.error(err)
@@ -270,76 +263,76 @@ const endTime = ref('')   // Will be set based on turno store data
 const filterApplied = ref(false)
 
 // Turno times from the store
-const turnoTimes = computed(() => {  
+const turnoTimes = computed(() => {
   // For professor orders, we need a wider range that spans all turni
   const allTurni = turnoStore.turni;
-  
+
   // Find the earliest start and latest end times across all turni
   const orderStart = allTurni.reduce((earliest, turno) => {
     const currentTime = timeToMinutes(turno.oraInizio);
     const earliestTime = timeToMinutes(earliest);
     return currentTime < earliestTime ? turno.oraInizio : earliest;
   }, '23:59');
-  
+
   const orderEnd = allTurni.reduce((latest, turno) => {
     const currentTime = timeToMinutes(turno.oraFine);
     const latestTime = timeToMinutes(latest);
     return currentTime > latestTime ? turno.oraFine : latest;
   }, '00:00');
-  
+
   const pickupStart = allTurni.reduce((earliest, turno) => {
     const currentTime = timeToMinutes(turno.inizioRitiro);
     const earliestTime = timeToMinutes(earliest);
     return currentTime < earliestTime ? turno.inizioRitiro : earliest;
   }, '23:59');
-  
+
   const pickupEnd = allTurni.reduce((latest, turno) => {
     const currentTime = timeToMinutes(turno.fineRitiro);
     const latestTime = timeToMinutes(latest);
     return currentTime > latestTime ? turno.fineRitiro : latest;
   }, '00:00');
-  
+
   return {
     orderStart,
-    orderEnd, 
+    orderEnd,
     pickupStart,
     pickupEnd
   };
 })
 const filteredOrders = computed<ClassOrder[]>(() => {
   let orders = professorOrders.value;
-  
+
   if (filterApplied.value) {
     // Convert the start/end times to minutes for comparison
     const startMinutes = timeToMinutes(startTime.value)
     const endMinutes = timeToMinutes(endTime.value)
-    
+
     orders = orders.filter(order => {
       if (!order.oraRitiro) return false
-      
+
       // Convert the order's pickup time to minutes
       const pickupTime = formatTime(order.oraRitiro)
       const pickupMinutes = timeToMinutes(pickupTime)
-      
+
       // Check if pickup time is within the range
       return pickupMinutes >= startMinutes && pickupMinutes <= endMinutes
     });
   }
-  
+
   // Sort orders - unprepared first, then prepared (to push prepared orders to the bottom)
   return orders.sort((a, b) => {
     // If one is prepared and the other is not, the unprepared one comes first
     if (a.preparato !== b.preparato) {
       return a.preparato ? 1 : -1; // Push prepared to the bottom
     }
-    
+
     // If both have the same prepared status, sort by pickup time
     if (a.oraRitiro && b.oraRitiro) {
       const timeA = timeToMinutes(formatTime(a.oraRitiro));
       const timeB = timeToMinutes(formatTime(b.oraRitiro));
       return timeA - timeB; // Sort by time ascending
     }
-    
+
     return 0;
   });
 })
@@ -349,7 +342,7 @@ const updateTimerange = () => {
   // Validate times
   const startMinutes = timeToMinutes(startTime.value)
   const endMinutes = timeToMinutes(endTime.value)
-  
+
   if (startMinutes > endMinutes) {
     // If start time is after end time, reset end time to be 2 hours after start
     const newEndHour = Math.min(23, Math.floor(startMinutes / 60) + 2)
@@ -373,7 +366,7 @@ const getOrderUserName = (order: Order | ClassOrder): string => {
 // Calculate order total
 const calculateOrderTotal = (order: Order | ClassOrder): number => {
   if (!order.prodotti || !Array.isArray(order.prodotti)) return 0
-  
+
   return order.prodotti.reduce((total, product) => {
     const price = product.prezzo || 0
     const quantity = product.quantita || 0
@@ -388,29 +381,26 @@ const markOrderAsPrepared = async (order: ClassOrder) => {
       console.error('Impossibile contrassegnare l\'ordine: classe mancante')
       return
     }
-    
+
     if (!order.idOrdine) {
       console.error('Impossibile contrassegnare l\'ordine: ID ordine mancante')
       return
     }
-    
+
     const API_CONFIG = {
-      BASE_URL: 'http://figliolo.it:5005/v1',
+      BASE_URL: 'http://figliolo.it:5006/v1',
       TOKEN: "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZCI6NDgsInJ1b2xvIjoiYWRtaW4iLCJpYXQiOjE3NDQyNzk2ODMsImV4cCI6MTc3NTgzNzI4M30.AelK6BkvrydKSqNGuXbzWGzST4yctrHvdjy66XeoMHI"
     }
-    
+
     const response = await fetch(`${API_CONFIG.BASE_URL}/ordini/classi/${order.classe}/turno/2/prepara`, {
       method: 'PUT',
-      headers: {
-        'Authorization': `Bearer ${API_CONFIG.TOKEN}`,
-        'Content-Type': 'application/json'
-      }
+      credentials: 'include'
     })
-    
+
     if (!response.ok) {
       throw new Error(`Errore API con stato ${response.status}`)
     }
-    
+
     // Refresh the orders after marking as prepared
     await fetchOrders()
   } catch (error) {
@@ -425,7 +415,7 @@ onMounted(async () => {
   if (turnoStore.turni.length === 0) {
     await turnoStore.fetchTurni()
   }
-  
+
   // Set initial time range values based on turno data
   if (turnoStore.turni.length > 0) {
     const times = turnoTimes.value;
@@ -436,7 +426,7 @@ onMounted(async () => {
     startTime.value = '08:00';
     endTime.value = '15:00';
   }
-  
+
   // Then fetch orders
   await fetchOrders()
 })
@@ -445,10 +435,10 @@ onMounted(async () => {
 <style scoped>
 .ordinazioni-prof-view {
   padding: 20px;
-  height: calc(100vh - 100px); 
+  height: calc(100vh - 100px);
   display: flex;
   flex-direction: column;
-  overflow: hidden; 
+  overflow: hidden;
 }
 
 h1 {
@@ -463,7 +453,7 @@ h2 {
 }
 
 .timeline-container {
-  max-height: 30vh; 
+  max-height: 30vh;
   margin-bottom: 15px;
 }
 
@@ -781,7 +771,7 @@ h2 {
   .content-container {
     grid-template-columns: minmax(250px, 1fr) minmax(400px, 2fr);
   }
-  
+
   .orders-container {
     grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
   }
@@ -791,11 +781,11 @@ h2 {
   .content-container {
     grid-template-columns: 1fr;
   }
-  
+
   .products-totals {
     margin-bottom: 15px;
   }
-  
+
   .orders-container {
     grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
   }

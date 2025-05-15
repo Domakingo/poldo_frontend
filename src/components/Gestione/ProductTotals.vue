@@ -6,9 +6,9 @@
     </div>
     <div v-else class="product-list">
       <!-- Unprepared products first -->
-      <div 
-        v-for="product in sortedProducts" 
-        :key="product.idProdotto" 
+      <div
+        v-for="product in sortedProducts"
+        :key="product.idProdotto"
         class="product-item"
         :class="{ 'product-prepared': isProductFullyPrepared(product.idProdotto) }"
       >
@@ -20,8 +20,8 @@
           <template v-else>
             {{ getPreparedQuantity(product.idProdotto) }}/{{ getTotalQuantity(product.idProdotto) }}
           </template>
-        </div>        <button 
-          v-if="!isProductFullyPrepared(product.idProdotto)" 
+        </div>        <button
+          v-if="!isProductFullyPrepared(product.idProdotto)"
           class="mark-prepared-btn"
           @click="markProductAsPrepared(product.idProdotto)"
           title="Segna come preparato"
@@ -75,20 +75,20 @@ const uniqueProducts = computed(() => {
       quantitaPreparata: product.quantitaPreparata
     }));
   }
-  
+
   // Otherwise, fall back to client-side calculation
   const products = new Map()
-  
+
   if (!Array.isArray(props.classOrders)) {
     console.error('classOrders non è un array:', props.classOrders)
     return []
   }
-  
+
   props.classOrders.forEach(order => {
     if (!order || !Array.isArray(order.prodotti)) {
       return
     }
-    
+
     order.prodotti.forEach(product => {
       if (product.idProdotto === undefined) {
         return
@@ -102,7 +102,7 @@ const uniqueProducts = computed(() => {
       }
     })
   })
-  
+
   return Array.from(products.values())
 })
 
@@ -111,11 +111,11 @@ const sortedProducts = computed(() => {
   return [...uniqueProducts.value].sort((a, b) => {
     const aFullyPrepared = isProductFullyPrepared(a.idProdotto);
     const bFullyPrepared = isProductFullyPrepared(b.idProdotto);
-    
+
     if (aFullyPrepared !== bFullyPrepared) {
       return aFullyPrepared ? 1 : -1; // Push prepared to the bottom
     }
-    
+
     // If both have the same prepared status, sort by name
     return a.nome.localeCompare(b.nome);
   });
@@ -127,20 +127,20 @@ const getTotalQuantity = (productId: number): number => {
   if (apiProduct) {
     return apiProduct.quantitaOrdinata;
   }
-  
+
   // Fallback to client-side calculation if API data isn't available
   if (!Array.isArray(props.classOrders)) {
     return 0
   }
-  
+
   return props.classOrders.reduce((total, order) => {
     if (!order || !Array.isArray(order.prodotti)) {
       return total
     }
-    
+
     const product = order.prodotti.find(p => p.idProdotto === productId)
     const quantity = product && typeof product.quantita === 'number' ? product.quantita : 0
-    
+
     return total + quantity
   }, 0)
 }
@@ -151,26 +151,26 @@ const getPreparedQuantity = (productId: number): number => {
   if (apiProduct) {
     return apiProduct.quantitaPreparata;
   }
-  
+
   // Fallback to client-side calculation if API data isn't available
   if (!Array.isArray(props.classOrders)) {
     return 0
   }
-  
+
   return props.classOrders.reduce((total, order) => {
     if (!order || !Array.isArray(order.prodotti)) {
       return total
     }
-    
+
     const product = order.prodotti.find(p => p.idProdotto === productId)
-    
+
     // Consider the product prepared if the whole order is prepared or if the product itself is marked as prepared
     if (product && typeof product.quantita === 'number') {
       if (order.preparato || product.preparato) {
         return total + product.quantita
       }
     }
-    
+
     return total
   }, 0)
 }
@@ -181,11 +181,11 @@ const isProductFullyPrepared = (productId: number): boolean => {
   if (apiProduct) {
     return apiProduct.tuttiPreparati;
   }
-  
+
   // Fallback to client-side calculation
   const totalQuantity = getTotalQuantity(productId)
   const preparedQuantity = getPreparedQuantity(productId)
-  
+
   return totalQuantity > 0 && totalQuantity === preparedQuantity
 }
 
@@ -195,16 +195,13 @@ const emit = defineEmits(['product-marked-as-prepared'])
 const markProductAsPrepared = async (productId: number) => {
   try {
     const API_CONFIG = {
-      BASE_URL: 'http://figliolo.it:5005/v1',
+      BASE_URL: 'http://figliolo.it:5006/v1',
       TOKEN: "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZCI6NDgsInJ1b2xvIjoiYWRtaW4iLCJpYXQiOjE3NDQyNzk2ODMsImV4cCI6MTc3NTgzNzI4M30.AelK6BkvrydKSqNGuXbzWGzST4yctrHvdjy66XeoMHI"
     };
 
     const response = await fetch(`${API_CONFIG.BASE_URL}/ordini/prodotti/${productId}/prepara?nTurno=${props.currentTurno}`, {
       method: 'PUT',
-      headers: {
-        'Authorization': `Bearer ${API_CONFIG.TOKEN}`,
-        'Content-Type': 'application/json'
-      }
+      credentials: 'include'
     });
 
     if (!response.ok) {
@@ -235,7 +232,7 @@ const productsData = ref<{
 
 // API configuration for fetching products
 const API_CONFIG = {
-  BASE_URL: 'http://figliolo.it:5005/v1',
+  BASE_URL: 'http://figliolo.it:5006/v1',
   TOKEN: "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZCI6NDgsInJ1b2xvIjoiYWRtaW4iLCJpYXQiOjE3NDQyNzk2ODMsImV4cCI6MTc3NTgzNzI4M30.AelK6BkvrydKSqNGuXbzWGzST4yctrHvdjy66XeoMHI"
 }
 
@@ -247,22 +244,18 @@ const fetchProductsData = async (turno: number = props.currentTurno) => {
     const month = String(today.getMonth() + 1).padStart(2, '0');
     const day = String(today.getDate()).padStart(2, '0');
     const dateStr = `${year}-${month}-${day}`;
-    
+
     // Corrected API endpoint for product totals with preparation status
     const url = `${API_CONFIG.BASE_URL}/ordini/prodotti?startDate=${dateStr}&endDate=${dateStr}&nTurno=${turno}`;
-    
+
     const response = await fetch(url, {
-      headers: {
-        'Authorization': `Bearer ${API_CONFIG.TOKEN}`,
-        'Accept': 'application/json',
-        'Content-Type': 'application/json'
-      }
+      credentials: 'include'
     });
-    
+
     if (!response.ok) {
       throw new Error(`Errore API con stato ${response.status}`);
     }
-    
+
     const data = await response.json();
     productsData.value = data;
   } catch (error) {

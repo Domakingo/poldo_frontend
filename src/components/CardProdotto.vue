@@ -4,16 +4,9 @@ import { useFavoritesStore } from '@/stores/favorites'
 import QuantityControl from './ControlloQuantitaProdotto.vue'
 import { useProductsStore } from '@/stores/products'
 
-const props = defineProps({
-    productId: {
-        type: Number,
-        required: true
-    },
-    disabled: {
-        type: Boolean,
-        default: false
-    }
-})
+const props = defineProps<{
+  productId: number
+}>()
 
 const product = {
   ...useProductsStore().getProductById(props.productId),
@@ -72,12 +65,14 @@ const flipCard = (event: Event) => {
             <div v-if="product.price !== undefined" class="price">€{{ product.price.toFixed(2) }}</div>
           </div>
 
-                    <QuantityControl 
-                        :product-id="id"
-                        :disabled="props.disabled"
-                         />
-                </div>
-            </div>
+          <div class="disponibility-counter" v-if="product.disponibility > 0">
+            Disponibili: {{ product.disponibility }}/{{ product.quantity }}
+          </div>
+
+          <QuantityControl v-if="product.disponibility > 0" :product-id="id" />
+          <div v-else class="out-of-stock-message">Prodotto esaurito</div>
+        </div>
+      </div>
 
       <!-- Back Side -->
       <div class="card-side card-back">

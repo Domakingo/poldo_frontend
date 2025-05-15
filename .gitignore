@@ -193,3 +193,5 @@ pnpm-debug.log*
 *.njsproj
 *.sln
 *.sw?
+
+.gitattributes

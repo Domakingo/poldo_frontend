@@ -1,7 +1,7 @@
 <template>
   <div class="reports-container">
     <h1 class="title">Reportistica Vendite</h1>
-    
+
     <div class="filters-container">
       <div class="filter-group">
         <label for="report-type">Tipo di Report:</label>
@@ -44,7 +44,7 @@
         <div v-else-if="!hasData" class="no-data">Nessun dato disponibile per il periodo selezionato.</div>
         <canvas v-else ref="chartCanvas"></canvas>
       </div>
-      
+
       <div class="export-container">
         <h2>Esporta Report</h2>
         <div class="summary-card" v-if="hasData">
@@ -65,17 +65,17 @@
             <span>Valore Totale:</span> <strong>{{ formatCurrency(reportData.summary?.totalValue || 0) }}</strong>
           </div>
         </div>
-        
+
         <div class="button-group">
-          <button 
-            class="btn btn-primary" 
-            @click="downloadPDF" 
+          <button
+            class="btn btn-primary"
+            @click="downloadPDF"
             :disabled="!hasData || loading">
             Esporta in PDF
           </button>
-          <button 
-            class="btn btn-secondary" 
-            @click="downloadCSV" 
+          <button
+            class="btn btn-secondary"
+            @click="downloadCSV"
             :disabled="!hasData || loading">
             Esporta in CSV
           </button>
@@ -100,13 +100,13 @@ export default {
     const reportData = ref({});
     const loading = ref(false);
     const error = ref(null);
-    
+
     // Report configuration
     const reportType = ref('prodotti');
     const timeframe = ref('month');
     const year = ref(new Date().getFullYear());
     const month = ref(new Date().getMonth() + 1);
-    
+
     // Reference data
     const availableYears = ref([]);
     const months = [
@@ -122,8 +122,8 @@ export default {
 
     const hasData = computed(() => {
       if (!reportData.value) return false;
-      
-      return reportType.value === 'prodotti' 
+
+      return reportType.value === 'prodotti'
         ? reportData.value.products?.length > 0
         : reportData.value.salesData?.length > 0;
     });
@@ -139,7 +139,7 @@ export default {
         }
       }
     };
-    
+
     // Format currency
     const formatCurrency = (value) => {
       return new Intl.NumberFormat('it-IT', {
@@ -152,7 +152,7 @@ export default {
     const loadReportData = async () => {
       loading.value = true;
       error.value = null;
-      
+
       try {
         // Get authentication token from localStorage
         const token = localStorage.getItem('token');
@@ -161,7 +161,7 @@ export default {
           loading.value = false;
           return;
         }
-        
+
         // Build query parameters
         let params = {};
         if (timeframe.value !== 'all') {
@@ -170,17 +170,15 @@ export default {
         if (timeframe.value === 'day') {
           params.month = month.value;
         }
-        
+
         // API endpoint
         const endpoint = `/api/reports/${reportType.value}/vendite/${timeframe.value}`;
-        
+
         const response = await axios.get(endpoint, {
           params,
-          headers: {
-            Authorization: `Bearer ${token}`
-          }
+          credentials: 'include'
         });
-        
+
         reportData.value = response.data;
         renderChart();
       } catch (err) {
@@ -195,22 +193,22 @@ export default {
     const renderChart = async () => {
       if (!hasData.value) return;
       await loadChartJS();
-      
+
       // Destroy previous chart if exists
       if (chart.value) {
         chart.value.destroy();
       }
-      
+
       // Create the chart
       const ctx = chartCanvas.value.getContext('2d');
-      
+
       let chartData = {};
       let chartOptions = {};
-      
+
       if (reportType.value === 'prodotti') {
         // Chart for product sales
         const products = reportData.value.products.slice(0, 15); // Limit to top 15 products
-        
+
         chartData = {
           labels: products.map(p => p.nome),
           datasets: [
@@ -231,7 +229,7 @@ export default {
             }
           ]
         };
-        
+
         chartOptions = {
           scales: {
             y: {
@@ -265,7 +263,7 @@ export default {
       } else {
         // Chart for time-based sales
         const sales = reportData.value.salesData;
-        
+
         chartData = {
           labels: sales.map(s => s.periodo_nome),
           datasets: [
@@ -288,7 +286,7 @@ export default {
             }
           ]
         };
-        
+
         chartOptions = {
           scales: {
             y: {
@@ -314,7 +312,7 @@ export default {
           maintainAspectRatio: false
         };
       }
-      
+
       chart.value = new Chart(ctx, {
         type: 'bar',
         data: chartData,
@@ -325,22 +323,22 @@ export default {
     // Download data as PDF
     const downloadPDF = async () => {
       if (!hasData.value) return;
-      
+
       // Dynamically import the library
       //const { default: jsPDF } = await import('jspdf');
-      
+
       try {
         const doc = new jsPDF();
-        
+
         // Add title
         const title = `Report ${reportType.value === 'prodotti' ? 'Prodotti' : 'Vendite'} - ${timeframe.value}`;
         doc.setFontSize(18);
         doc.text(title, 14, 20);
-        
+
         // Add date
         doc.setFontSize(12);
         doc.text(`Generato il: ${new Date().toLocaleDateString('it-IT')}`, 14, 30);
-        
+
         // Add filters info
         doc.text(`Periodo: ${timeframe.value}`, 14, 40);
         if (timeframe.value !== 'all') {
@@ -349,14 +347,14 @@ export default {
         if (timeframe.value === 'day') {
           doc.text(`Mese: ${months[month.value - 1]}`, 14, 60);
         }
-        
+
         // Add summary
         doc.setFontSize(14);
         doc.text('Riepilogo', 14, 70);
-        
+
         doc.setFontSize(12);
         let yPos = 80;
-        
+
         if (reportType.value === 'prodotti') {
           doc.text(`Totale Prodotti: ${reportData.value.summary?.totalProducts || 0}`, 14, yPos);
           yPos += 10;
@@ -366,20 +364,20 @@ export default {
           yPos += 10;
           doc.text(`Quantità Prodotti: ${reportData.value.summary?.totalQuantity || 0}`, 14, yPos);
         }
-        
+
         yPos += 10;
         doc.text(`Valore Totale: ${formatCurrency(reportData.value.summary?.totalValue || 0)}`, 14, yPos);
-        
+
         // Add chart
         if (chart.value) {
           yPos += 20;
           const chartImg = chart.value.toBase64Image();
           doc.addImage(chartImg, 'PNG', 14, yPos, 180, 100);
         }
-        
+
         // Save the PDF
         doc.save(`report_${reportType.value}_${timeframe.value}_${new Date().getTime()}.pdf`);
-        
+
       } catch (error) {
         console.error('Error generating PDF:', error);
         alert('Si è verificato un errore durante la generazione del PDF.');
@@ -389,18 +387,18 @@ export default {
     // Download data as CSV
     const downloadCSV = async () => {
       if (!hasData.value) return;
-      
+
       try {
         // Dynamically import libraries
         // const { unparse } = await import('papaparse');
         // const { saveAs } = await import('file-saver');
-        
+
         let csvData = [];
-        
+
         if (reportType.value === 'prodotti') {
           // Headers for product report
           const headers = ['ID', 'Nome', 'Prezzo', 'Gestione', 'Quantità Venduta', 'Valore Totale'];
-          
+
           // Data rows
           csvData = reportData.value.products.map(product => [
             product.idProdotto,
@@ -410,13 +408,13 @@ export default {
             product.quantita_venduta,
             product.valore_totale
           ]);
-          
+
           // Insert headers at the beginning
           csvData.unshift(headers);
         } else {
           // Headers for sales report
           const headers = ['Periodo', 'Numero Ordini', 'Quantità Prodotti', 'Valore Totale'];
-          
+
           // Data rows
           csvData = reportData.value.salesData.map(sale => [
             sale.periodo_nome,
@@ -424,18 +422,18 @@ export default {
             sale.quantita_prodotti,
             sale.valore_totale
           ]);
-          
+
           // Insert headers at the beginning
           csvData.unshift(headers);
         }
-        
+
         // Convert to CSV
         const csv = unparse(csvData);
-        
+
         // Create a blob and save
         const blob = new Blob([csv], { type: 'text/csv;charset=utf-8' });
         saveAs(blob, `report_${reportType.value}_${timeframe.value}_${new Date().getTime()}.csv`);
-        
+
       } catch (error) {
         console.error('Error generating CSV:', error);
         alert('Si è verificato un errore durante la generazione del CSV.');
@@ -610,11 +608,11 @@ export default {
   .report-content {
     flex-direction: column;
   }
-  
+
   .export-container {
     width: 100%;
   }
-  
+
   .chart-container {
     width: 100%;
   }

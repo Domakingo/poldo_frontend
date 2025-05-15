@@ -5,7 +5,7 @@
 export const API_CONFIG = {
   // Base URL for all API requests
   baseURL: 'http://figliolo.it:5000/v1',
-  
+
   // Endpoint paths (to be appended to baseURL)
   endpoints: {
     users: '/utenti',
@@ -28,17 +28,9 @@ export const getAuthHeaders = () => {
 // Common fetch wrapper with error handling
 export const fetchWithAuth = async (url: string, options: RequestInit = {}) => {
   try {
-    // Set default headers
-    const headers = {
-      ...getAuthHeaders(),
-      ...(options.headers || {})
-    };
-
     // Make the request
     const response = await fetch(url, {
       ...options,
-      headers,
-      // Add credentials to allow cookies to be sent
       credentials: 'include'
     });
 
@@ -46,7 +38,7 @@ export const fetchWithAuth = async (url: string, options: RequestInit = {}) => {
     if (!response.ok) {
       const errorData = await response.json().catch(() => null);
       throw new Error(
-        errorData?.error || 
+        errorData?.error ||
         `Errore API: ${response.status} ${response.statusText}`
       );
     }
@@ -56,8 +48,8 @@ export const fetchWithAuth = async (url: string, options: RequestInit = {}) => {
     return { success: true, data };
   } catch (error: any) {
     console.error('API request failed:', error);
-    return { 
-      success: false, 
+    return {
+      success: false,
       error: error.message || 'Si è verificato un errore durante la richiesta'
     };
   }

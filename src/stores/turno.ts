@@ -10,13 +10,6 @@ interface Turno {
   nome: string
 }
 
-
-const headers = new Headers({
-  Authorization: `Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZCI6NTAsInJ1b2xvIjoicGFuaW5hcm8iLCJpYXQiOjE3NDQzMDc2ODgsImV4cCI6MTc3NTg2NTI4OH0.noyJJ5yLRAdZ4bxIOGdlYBjSZQElmXV4KOqGGVJHl_Q`,
-  Accept: 'application/json',
-  'Content-Type': 'application/json'
-})
-
 export const useTurnoStore = defineStore('turno', () => {
   const selectedTurno = ref<number>(-1)
   const turni = ref<Turno[]>([])
@@ -29,7 +22,7 @@ export const useTurnoStore = defineStore('turno', () => {
     try {
 
       const giornoSettimana = new Date().toLocaleDateString('it-IT', { weekday: 'long' }).toLowerCase().substring(0, 3)
-      const response = await fetch(`http://figliolo.it:5005/v1/turni?giorno=${giornoSettimana}`, { headers });
+      const response = await fetch(`http://figliolo.it:5006/v1/turni?giorno=${giornoSettimana}`, {credentials: 'include'});
       if (response.status === 404) throw new Error('Turni non trovati per oggi')
       if (!response.ok) throw new Error('Errore nella risposta della rete')
 

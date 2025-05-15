@@ -5,13 +5,13 @@
       Nessun ordine da visualizzare
     </div>
     <div v-else class="class-list">
-      <div 
-        v-for="order in sortedClassOrders" 
-        :key="order.classe || 'unknown'" 
+      <div
+        v-for="order in sortedClassOrders"
+        :key="order.classe || 'unknown'"
         class="card-wrapper"
       >
-        <div 
-          class="custom-card" 
+        <div
+          class="custom-card"
           :class="{'prepared-card': order.preparato}"
         >
           <h4>
@@ -37,8 +37,8 @@
             </template>
           </div>
           <div v-if="order.preparato" class="prepared-badge">Preparato</div>
-          <button 
-            v-if="!order.preparato" 
+          <button
+            v-if="!order.preparato"
             class="mark-prepared-btn"
             @click="markOrderAsPrepared(order)"
             title="Segna come preparato"
@@ -96,12 +96,12 @@ const safeClassOrders = computed<ClassOrder[]>(() => {
     console.warn('classOrders non è un array:', props.classOrders)
     return []
   }
-  
+
   return props.classOrders.filter(order => order && typeof order === 'object').map(order => {
-    const prodotti = Array.isArray(order.prodotti) 
+    const prodotti = Array.isArray(order.prodotti)
       ? order.prodotti.filter(p => p && typeof p === 'object')
       : []
-    
+
     return {
       ...order,
       classe: order.classe,
@@ -128,28 +128,28 @@ const sortedClassOrders = computed<ClassOrder[]>(() => {
 
 const formatTime = (time?: string): string => {
   if (!time) return ''
-  
+
   if (time.includes(':')) {
     const parts = time.split(':')
     if (parts.length >= 2) {
       return `${parts[0]}:${parts[1]}`
     }
   }
-  
+
   return time
 }
 
 const orderTypeTitle = computed(() => {
   const turno = turnoStore.turni.find(t => t.n === props.selectedTurno)
-  
+
   if (turno && turno.nome) {
     return `Ordini ${turno.nome}`
   }
-  
+
   if (props.selectedTurno === 2) {
     return 'Ordini Professori'
   }
-  
+
   return 'Ordini per Classe'
 })
 
@@ -161,25 +161,22 @@ const markOrderAsPrepared = async (order: ClassOrder) => {
     console.error('Impossibile contrassegnare l\'ordine: classe mancante')
     return
   }
-  
+
   try {
     const API_CONFIG = {
-      BASE_URL: 'http://figliolo.it:5005/v1',
+      BASE_URL: 'http://figliolo.it:5006/v1',
       TOKEN: "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZCI6NDgsInJ1b2xvIjoiYWRtaW4iLCJpYXQiOjE3NDQyNzk2ODMsImV4cCI6MTc3NTgzNzI4M30.AelK6BkvrydKSqNGuXbzWGzST4yctrHvdjy66XeoMHI"
     }
-    
+
     const response = await fetch(`${API_CONFIG.BASE_URL}/ordini/classi/${order.classeId}/turno/${props.selectedTurno}/prepara`, {
       method: 'PUT',
-      headers: {
-        'Authorization': `Bearer ${API_CONFIG.TOKEN}`,
-        'Content-Type': 'application/json'
-      }
+      credentials: 'include'
     })
-    
+
     if (!response.ok) {
       throw new Error(`Errore API con stato ${response.status}`)
     }
-    
+
     // Notify parent component that the order was marked as prepared
     emit('orderMarkedAsPrepared', { classe: order.classe, turno: props.selectedTurno })
   } catch (error) {

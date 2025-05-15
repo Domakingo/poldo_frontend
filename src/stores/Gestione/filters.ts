@@ -2,19 +2,13 @@ import { defineStore } from 'pinia'
 import { ref } from 'vue'
 
 const API_CONFIG = {
-  BASE_URL: 'http://localhost:5000/v1',
+  BASE_URL: 'http://figliolo.it:5006/v1',
   TOKEN: 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZEdlc3Rpb25lIjoxLCJydW9sbyI6Imdlc3RvcmUiLCJpZCI6MTksImlhdCI6MTc0NDMwNzg0MiwiZXhwIjoxNzc1ODY1NDQyfQ.HMNTe1h81A80p-BawzVj44zSBGBVMYZRdp_vDxE2j9k'
 }
 
-const headers = new Headers({
-  Authorization: `Bearer ${API_CONFIG.TOKEN}`,
-  Accept: 'application/json',
-  'Content-Type': 'application/json'
-})
-
 async function handleRequest<T>(endpoint: string, errorMsg: string): Promise<T> {
   const url = `${API_CONFIG.BASE_URL}/${endpoint}`
-  const response = await fetch(url, { headers, mode: 'cors' })
+  const response = await fetch(url, { credentials: 'include', mode: 'cors' })
   if (!response.ok) throw new Error(`${errorMsg}: ${response.status}`)
   return response.json()
 }
@@ -53,7 +47,7 @@ export const useFiltersStore = defineStore('filters', () => {
     try {
       await fetch(`${API_CONFIG.BASE_URL}/ingredienti`, {
         method: 'POST',
-        headers,
+        credentials: 'include',
         body: JSON.stringify({ nomeIngrediente: name.trim() })
       })
       await fetchIngredients()
@@ -67,7 +61,7 @@ export const useFiltersStore = defineStore('filters', () => {
     try {
       await fetch(`${API_CONFIG.BASE_URL}/tag`, {
         method: 'POST',
-        headers,
+        credentials: 'include',
         body: JSON.stringify({ nomeTag: name.trim() })
       })
       await fetchTags()
@@ -82,7 +76,7 @@ export const useFiltersStore = defineStore('filters', () => {
     try {
       await fetch(`${API_CONFIG.BASE_URL}/ingredienti/${encodeURIComponent(oldName)}`, {
         method: 'PUT',
-        headers,
+        credentials: 'include',
         body: JSON.stringify({ nuovoNome: newName.trim() })
       })
       await fetchIngredients()
@@ -96,7 +90,7 @@ export const useFiltersStore = defineStore('filters', () => {
     try {
       await fetch(`${API_CONFIG.BASE_URL}/tag/${encodeURIComponent(oldName)}`, {
         method: 'PUT',
-        headers,
+        credentials: 'include',
         body: JSON.stringify({ nuovoNome: newName.trim() })
       })
       await fetchTags()

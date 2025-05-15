@@ -1,7 +1,7 @@
 <script setup lang="ts">
 const signInWithGoogle = () => {
-  window.location.href='http://l.figliolo.it:5005/v1/auth/google'
-  
+  window.location.href='http://figliolo.it:5006/v1/auth/google'
+
   // Listener per il messaggio di successo
   window.addEventListener('message', (event) => {
     if(event.origin !== window.origin) return
@@ -17,9 +17,9 @@ const signInWithGoogle = () => {
   <div class="login-container">
     <!-- Header con logo -->
     <header class="login-header">
-      <img 
-        src="/poldoLogo.png" 
-        alt="Logo Applicazione" 
+      <img
+        src="/poldoLogo.png"
+        alt="Logo Applicazione"
         class="logo"
       >
     </header>
@@ -32,7 +32,7 @@ const signInWithGoogle = () => {
       </div>
 
       <!-- Bottone Google Login -->
-      <button 
+      <button
         @click="signInWithGoogle"
         class="google-login-btn"
       >

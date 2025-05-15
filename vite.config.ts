@@ -21,7 +21,7 @@ export default defineConfig({
     allowedHosts: ['l.figliolo.it'],
     proxy: {
       '/api': {
-        target: 'http://figliolo.it:5005',
+        target: 'http://figliolo.it:5006',
         changeOrigin: true,
         rewrite: (path) => path.replace(/^\/api/, '/v1'),
         secure: false

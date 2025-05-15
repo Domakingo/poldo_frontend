@@ -14,15 +14,10 @@ export interface Product {
 }
 
 const API_CONFIG = {
-  BASE_URL: 'http://localhost:5000/v1',
+  BASE_URL: 'http://figliolo.it:5006/v1',
   TOKEN: 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZEdlc3Rpb25lIjoxLCJydW9sbyI6Imdlc3RvcmUiLCJpZCI6MTksImlhdCI6MTc0NDMwNzg0MiwiZXhwIjoxNzc1ODY1NDQyfQ.HMNTe1h81A80p-BawzVj44zSBGBVMYZRdp_vDxE2j9k',
-  DEFAULT_IMAGE: 'http://localhost:5000/v1/prodotti/image/-1'
+  DEFAULT_IMAGE: 'http://figliolo.it:5006/v1/prodotti/image/-1'
 }
-
-const jwtHeaders = new Headers({
-  Authorization: `Bearer ${API_CONFIG.TOKEN}`,
-  Accept: 'application/json',
-});
 
 export const useGestioneProductsStore = defineStore('gestioneProducts', () => {
   // Stato
@@ -54,7 +49,7 @@ export const useGestioneProductsStore = defineStore('gestioneProducts', () => {
     try {
       const response = await fetch(
         `${API_CONFIG.BASE_URL}/prodotti/all`,
-        { headers: jwtHeaders }
+        { credentials: 'include' }
       );
       const raw = await response.json();
 
@@ -65,7 +60,7 @@ export const useGestioneProductsStore = defineStore('gestioneProducts', () => {
           // 1. Provo a scaricare l’immagine con il JWT
           let finalImageSrc = API_CONFIG.DEFAULT_IMAGE;
           try {
-            const imgRes = await fetch(imageEndpoint, { headers: jwtHeaders });
+            const imgRes = await fetch(imageEndpoint, { credentials: 'include' });
             if (imgRes.ok) {
               const blob = await imgRes.blob();
               finalImageSrc = URL.createObjectURL(blob);
@@ -107,9 +102,7 @@ export const useGestioneProductsStore = defineStore('gestioneProducts', () => {
       // Se c'è un'immagine da caricare
       if (newProduct.imageSrc && newProduct.imageSrc !== API_CONFIG.DEFAULT_IMAGE) {
         const response = await fetch(newProduct.imageSrc, {
-          headers: new Headers({
-            Authorization: `Bearer ${API_CONFIG.TOKEN}`
-          })
+          credentials: 'include'
         });
         if (!response.ok) {
           throw new Error(`Impossibile scaricare l'immagine da ${newProduct.imageSrc}`);
@@ -125,9 +118,7 @@ export const useGestioneProductsStore = defineStore('gestioneProducts', () => {
 
       const data = await fetch(`${API_CONFIG.BASE_URL}/prodotti`, {
         method: 'POST',
-        headers: new Headers({
-          Authorization: `Bearer ${API_CONFIG.TOKEN}`
-        }),
+        credentials: 'include',
         body: formData
       }).then(res => res.json())
 
@@ -164,9 +155,7 @@ export const useGestioneProductsStore = defineStore('gestioneProducts', () => {
 
       await fetch(`${API_CONFIG.BASE_URL}/prodotti/${id}`, {
         method: 'PATCH',
-        headers: new Headers({
-          Authorization: `Bearer ${API_CONFIG.TOKEN}`
-        }),
+        credentials: 'include',
         body: formData
       })
 
