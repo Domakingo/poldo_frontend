@@ -1,12 +1,11 @@
 <template>
   <div class="ordinazioni-prof-view">
-    <!-- Loading and error handling -->
-    <div v-if="loading" class="loading-indicator">
+    <!-- Loading and error handling -->    <div v-if="loading || ordiniStore.loading" class="loading-indicator">
       <p>Caricamento ordinazioni...</p>
     </div>
 
-    <div v-else-if="error" class="error-message">
-      <p>{{ error }}</p>
+    <div v-else-if="error || ordiniStore.error" class="error-message">
+      <p>{{ error || ordiniStore.error }}</p>
       <button @click="fetchOrders">Riprova</button>
     </div>
 
@@ -117,56 +116,14 @@ import ProfessorTimeline from '@/components/Gestione/ProfessorTimeline.vue'
 import ProductTotals from '@/components/Gestione/ProductTotals.vue'
 import { formatTime, formatCurrency, timeToMinutes } from '@/utils/timelineUtils'
 import { useTurnoStore } from '@/stores/turno'
+import { useOrdiniStore } from '@/stores/Gestione/ordini'
 
 // Store
 const turnoStore = useTurnoStore()
+const ordiniStore = useOrdiniStore()
 
-// // API configurazione
-// const API_CONFIG = {
-//   BASE_URL: 'http://figliolo.it:5006/v1',
-//   TOKEN: "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZCI6NDgsInJ1b2xvIjoiYWRtaW4iLCJpYXQiOjE3NDQyNzk2ODMsImV4cCI6MTc3NTgzNzI4M30.AelK6BkvrydKSqNGuXbzWGzST4yctrHvdjy66XeoMHI"
-// }
-// API configurazione
-const API_CONFIG = {
-  BASE_URL: 'http://figliolo.it:5006/v1',
-  TOKEN: "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZCI6NDgsInJ1b2xvIjoiYWRtaW4iLCJpYXQiOjE3NDQyNzk2ODMsImV4cCI6MTc3NTgzNzI4M30.AelK6BkvrydKSqNGuXbzWGzST4yctrHvdjy66XeoMHI"
-}
-
-interface Product {
-  idProdotto: number;
-  nome: string;
-  quantita: number;
-  prezzo: number;
-}
-
-// ClassOrder type needed for ProductTotals component
-interface ClassOrder {
-  classe: string;
-  prodotti: Product[];
-  idOrdine?: number;
-  data?: string;
-  user?: number;
-  oraRitiro?: string;
-  userData?: any;
-  confermato?: boolean;
-  preparato?: boolean;
-  userRole?: string;
-}
-
-interface Order {
-  idOrdine: number;
-  data: string;
-  nTurno?: number;
-  giorno?: string;
-  user?: number;
-  classe: string; // Make classe required
-  oraRitiro?: string;
-  prodotti: Product[];
-  userData?: any;
-  confermato?: boolean;
-  preparato?: boolean;
-  userRole?: string;
-}
+// Import types from store
+import type { ClassOrder, Order, Product } from '@/stores/Gestione/ordini'
 
 // State
 const allOrders = ref<Order[]>([])
@@ -174,82 +131,19 @@ const professorOrders = ref<Order[]>([])
 const loading = ref(false)
 const error = ref('')
 
-// Cache utenti
-const userCache = ref<{[key: number]: any}>({});
-
 // Formattazione data
-const formatDate = (date: Date): string => {
-  const year = date.getFullYear()
-  const month = String(date.getMonth() + 1).padStart(2, '0')
-  const day = String(date.getDate()).padStart(2, '0')
-  return `${year}-${month}-${day}`
-}
-const selectedDate = ref(formatDate(new Date()))
-
-// Fetch user data by ID
-const fetchUserById = async (userId: number) => {
-  if (userCache.value[userId]) return userCache.value[userId];
-
-  try {
-    const response = await fetch(`${API_CONFIG.BASE_URL}/utenti/${userId}`, { credentials: 'include' });
-    if (!response.ok) {
-      throw new Error(`Impossibile recuperare i dati dell'utente con ID ${userId}`);
-    }
-    const userData = await response.json();
-    userCache.value[userId] = userData;
-
-    return userData;
-  } catch (error) {
-    console.error(`Errore nel recupero dei dati dell'utente con ID ${userId}:`, error);
-    return null;
-  }
-}
+const selectedDate = ref(ordiniStore.selectedDate)
 
 // Fetch all orders
 const fetchOrders = async () => {
   loading.value = true
   error.value = ''
-
   try {
-    const url = `${API_CONFIG.BASE_URL}/ordini?startDate=${selectedDate.value}&endDate=${selectedDate.value}`;
-    const response = await fetch(url, { credentials: 'include' })
-
-    if (!response.ok) throw new Error(`Errore API con stato ${response.status}`)
-    const data = await response.json()
-
-    allOrders.value = data
-
-    // Filtra gli ordini dei professori (quelli con oraRitiro)
-    const professorOrdersData = data.filter((order: any) => order.oraRitiro !== null && order.oraRitiro !== undefined);
-    const processedOrders = [];
-
-    for (const order of professorOrdersData) {
-      try {
-        const processedOrder = {
-          ...order,
-          prodotti: Array.isArray(order.prodotti) ? order.prodotti : [],
-          classe: order.classe,
-          userRole: 'prof',
-          oraRitiro: order.oraRitiro
-        };
-
-        if (order.user) {
-          const userData = await fetchUserById(order.user);
-          if (userData) {
-            processedOrder.userData = userData;
-          }
-        }
-
-        processedOrders.push(processedOrder);
-      } catch (err) {
-        console.error("Errore nell'elaborazione dell'ordine del professore:", err, order);
-      }
-    }
-
-    professorOrders.value = processedOrders;
-
+    await ordiniStore.fetchProfOrders()
+    professorOrders.value = ordiniStore.profOrders
+    allOrders.value = ordiniStore.profOrders
   } catch (err) {
-    error.value = 'Errore nel caricamento degli ordini'
+    error.value = ordiniStore.error || 'Errore nel caricamento degli ordini'
     console.error(err)
     professorOrders.value = []
   } finally {
@@ -357,21 +251,12 @@ const applyTimeFilter = () => {
 
 // Display user name
 const getOrderUserName = (order: Order | ClassOrder): string => {
-  if (order.userData && (order.userData.nome || order.userData.cognome)) {
-    return `${order.userData.cognome || ''} ${order.userData.nome || ''}`.trim()
-  }
-  return `Utente #${order.user || 'N/A'}`
+  return ordiniStore.getOrderUserName(order)
 }
 
 // Calculate order total
 const calculateOrderTotal = (order: Order | ClassOrder): number => {
-  if (!order.prodotti || !Array.isArray(order.prodotti)) return 0
-
-  return order.prodotti.reduce((total, product) => {
-    const price = product.prezzo || 0
-    const quantity = product.quantita || 0
-    return total + (price * quantity)
-  }, 0)
+  return ordiniStore.calculateOrderTotal(order)
 }
 
 // Function to mark an order as prepared
@@ -382,27 +267,15 @@ const markOrderAsPrepared = async (order: ClassOrder) => {
       return
     }
 
-    if (!order.idOrdine) {
-      console.error('Impossibile contrassegnare l\'ordine: ID ordine mancante')
-      return
+    // Professor orders are always in turno 2
+    const success = await ordiniStore.markOrderAsPrepared(order.classe, 2)
+    
+    if (success) {
+      // Refresh the orders
+      await fetchOrders()
+    } else {
+      throw new Error('Errore durante la preparazione dell\'ordine')
     }
-
-    const API_CONFIG = {
-      BASE_URL: 'http://figliolo.it:5006/v1',
-      TOKEN: "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZCI6NDgsInJ1b2xvIjoiYWRtaW4iLCJpYXQiOjE3NDQyNzk2ODMsImV4cCI6MTc3NTgzNzI4M30.AelK6BkvrydKSqNGuXbzWGzST4yctrHvdjy66XeoMHI"
-    }
-
-    const response = await fetch(`${API_CONFIG.BASE_URL}/ordini/classi/${order.classe}/turno/2/prepara`, {
-      method: 'PUT',
-      credentials: 'include'
-    })
-
-    if (!response.ok) {
-      throw new Error(`Errore API con stato ${response.status}`)
-    }
-
-    // Refresh the orders after marking as prepared
-    await fetchOrders()
   } catch (error) {
     console.error('Errore nel marcare l\'ordine come preparato:', error)
     alert('Errore nel marcare l\'ordine come preparato. Riprova.')
@@ -427,6 +300,9 @@ onMounted(async () => {
     endTime.value = '15:00';
   }
 
+  // Set selected date in store (if needed)
+  ordiniStore.setSelectedDate(selectedDate.value)
+  
   // Then fetch orders
   await fetchOrders()
 })

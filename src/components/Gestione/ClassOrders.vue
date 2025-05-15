@@ -56,8 +56,11 @@
 <script setup lang="ts">
 import { computed } from 'vue'
 import { useTurnoStore } from '@/stores/turno'
+import { useOrdiniStore } from '@/stores/Gestione/ordini'
+import { API_CONFIG } from '@/utils/api'
 
 const turnoStore = useTurnoStore()
+const ordiniStore = useOrdiniStore()
 
 interface Product {
   idProdotto?: number;
@@ -157,24 +160,22 @@ const emit = defineEmits(['orderMarkedAsPrepared'])
 
 // Function to mark an order as prepared
 const markOrderAsPrepared = async (order: ClassOrder) => {
-  if (!order.classe) {
-    console.error('Impossibile contrassegnare l\'ordine: classe mancante')
+  if (!order.classe || !order.classeId) {
+    console.error('Impossibile contrassegnare l\'ordine: classe o classeId mancante')
     return
   }
-
   try {
-    const API_CONFIG = {
-      BASE_URL: 'http://figliolo.it:5006/v1',
-      TOKEN: "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZCI6NDgsInJ1b2xvIjoiYWRtaW4iLCJpYXQiOjE3NDQyNzk2ODMsImV4cCI6MTc3NTgzNzI4M30.AelK6BkvrydKSqNGuXbzWGzST4yctrHvdjy66XeoMHI"
-    }
-
-    const response = await fetch(`${API_CONFIG.BASE_URL}/ordini/classi/${order.classeId}/turno/${props.selectedTurno}/prepara`, {
+    // Use direct fetch with the correct endpoint without leading slash
+    const url = `${API_CONFIG.baseURL}/ordini/classi/${order.classeId}/turno/${props.selectedTurno}/prepara`;
+    
+    const response = await fetch(url, {
       method: 'PUT',
-      credentials: 'include'
-    })
+      credentials: 'include',
+      mode: 'cors'
+    });
 
     if (!response.ok) {
-      throw new Error(`Errore API con stato ${response.status}`)
+      throw new Error(`Errore API: ${response.status} ${response.statusText}`);
     }
 
     // Notify parent component that the order was marked as prepared

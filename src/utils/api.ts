@@ -4,7 +4,7 @@
 // API Base URL configuration
 export const API_CONFIG = {
   // Base URL for all API requests
-  baseURL: 'http://figliolo.it:5000/v1',
+  baseURL: 'http://figliolo.it:5006/v1',
 
   // Endpoint paths (to be appended to baseURL)
   endpoints: {

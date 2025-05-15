@@ -2,6 +2,7 @@
 import { ref, computed, onMounted } from 'vue'
 import Alert from '@/components/Alert.vue'
 import { useTurnoStore } from '@/stores/turno'
+import { useOrdiniStore } from '@/stores/Gestione/ordini'
 
 // Importa i componenti
 import ProfessorTimeline from '@/components/Gestione/ProfessorTimeline.vue'
@@ -11,133 +12,36 @@ import ClassOrders from '@/components/Gestione/ClassOrders.vue'
 
 // Store
 const turnoStore = useTurnoStore()
-
-// // API configurazione
-// const API_CONFIG = {
-//   BASE_URL: 'http://figliolo.it:5006/v1',
-//   TOKEN: "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZCI6NDgsInJ1b2xvIjoiYWRtaW4iLCJpYXQiOjE3NDQyNzk2ODMsImV4cCI6MTc3NTgzNzI4M30.AelK6BkvrydKSqNGuXbzWGzST4yctrHvdjy66XeoMHI"
-// }
-const API_CONFIG = {
-  BASE_URL: 'http://figliolo.it:5006/v1',
-  TOKEN: "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZCI6NDgsInJ1b2xvIjoiYWRtaW4iLCJpYXQiOjE3NDQyNzk2ODMsImV4cCI6MTc3NTgzNzI4M30.AelK6BkvrydKSqNGuXbzWGzST4yctrHvdjy66XeoMHI"
-}
-
-// Interfacce
-interface Product {
-  idProdotto: number
-  nome: string
-  quantita: number
-  prezzo: number
-}
-
-interface Order {
-  idOrdine: number
-  data: string
-  nTurno: number
-  giorno: string
-  user: number
-  classe: string
-  confermato: boolean
-  preparato: boolean
-  oraRitiro?: string
-  prodotti: Product[]
-  userRole?: string
-  userData?: any
-}
-
-interface ClassOrder {
-  classe: string
-  data: string
-  prodotti: Product[]
-  confermato?: boolean
-  oraRitiro?: string
-  preparato?: boolean
-}
+const ordiniStore = useOrdiniStore()
 
 // Ref
-const classOrders = ref<ClassOrder[]>([])
-const profOrders = ref<Order[]>([])
+const classOrders = ref(ordiniStore.classOrders)
+const profOrders = ref(ordiniStore.profOrders)
 const loading = ref(true)
 const error = ref<string | null>(null)
 const selectedTurno = ref(1)
 const showOrderDetails = ref(false)
-const selectedOrderDetails = ref<Order[]>([])
+const selectedOrderDetails = ref<any[]>([])
 const availableTurni = computed(() => turnoStore.turni)
 
 // Formattazione data
-const formatDate = (date: Date): string => {
-  const year = date.getFullYear()
-  const month = String(date.getMonth() + 1).padStart(2, '0')
-  const day = String(date.getDate()).padStart(2, '0')
-  return `${year}-${month}-${day}`
-}
-const selectedDate = ref(formatDate(new Date()))
+const selectedDate = ref(ordiniStore.selectedDate)
 
 // Proprietà calcolata per la visualizzazione della timeline
 const showProfessorTimeline = computed(() => {
-  return profOrders.value.length > 0;
+  return ordiniStore.profOrders.length > 0;
 })
-
-// Cache utenti
-const userCache = ref<{[key: number]: any}>({});
-const fetchUserById = async (userId: number) => {
-  if (userCache.value[userId]) return userCache.value[userId];
-
-  try {
-    const response = await fetch(`${API_CONFIG.BASE_URL}/utenti/${userId}`, { credentials: 'include' });
-    if (!response.ok) {
-      throw new Error(`Impossibile recuperare i dati dell'utente con ID ${userId}`);
-    }
-    const userData = await response.json();
-    userCache.value[userId] = userData;
-
-    return userData;
-  } catch (error) {
-    console.error(`Errore nel recupero dei dati dell'utente con ID ${userId}:`, error);
-    return null;
-  }
-}
 
 // Recupera gli ordini dei professori
 const fetchProfOrders = async () => {
   loading.value = true
+  error.value = null
+  
   try {
-    const url = `${API_CONFIG.BASE_URL}/ordini?startDate=${selectedDate.value}&endDate=${selectedDate.value}`;
-    const response = await fetch(url, { credentials: 'include' })
-
-    if (!response.ok) throw new Error(`Errore API con stato ${response.status}`)
-    const data = await response.json()
-
-    const professorOrders = data.filter((order: any) => order.oraRitiro !== null && order.oraRitiro !== undefined);
-    const processedOrders = [];
-    for (const order of professorOrders) {
-      try {
-        const processedOrder = {
-          ...order,
-          prodotti: Array.isArray(order.prodotti) ? order.prodotti : [],
-          classe: order.classe,
-          userRole: 'prof',
-          oraRitiro: order.oraRitiro
-        };
-
-        if (order.user) {
-          const userData = await fetchUserById(order.user);
-          if (userData) {
-            processedOrder.userData = userData;
-          }
-        }
-
-        processedOrders.push(processedOrder);
-      } catch (err) {
-        console.error("Errore nell'elaborazione dell'ordine del professore:", err, order);
-      }
-    }
-
-    profOrders.value = processedOrders;
+    await ordiniStore.fetchProfOrders()
+    profOrders.value = ordiniStore.profOrders
   } catch (err) {
-    console.error('Errore nel recupero degli ordini dei professori:', err)
-    error.value = 'Errore nel caricamento degli ordini dei professori.'
-    profOrders.value = []
+    error.value = ordiniStore.error || 'Errore nel caricamento degli ordini dei professori.'
   } finally {
     loading.value = false
   }
@@ -146,25 +50,13 @@ const fetchProfOrders = async () => {
 // Recupera gli ordini per classe
 const fetchClassOrders = async () => {
   loading.value = true
+  error.value = null
+  
   try {
-    const response = await fetch(`${API_CONFIG.BASE_URL}/ordini/classi?startDate=${selectedDate.value}&endDate=${selectedDate.value}&nTurno=${selectedTurno.value}`, { credentials: 'include' })
-    if (!response.ok) {
-      throw new Error(`Errore API con stato ${response.status}`)
-    }
-    const data = await response.json()
-
-    // Filtra gli ordini per il turno selezionato
-    classOrders.value = data
-      .map((order: any) => ({
-        ...order,
-        prodotti: Array.isArray(order.prodotti) ? order.prodotti : [],
-        classe: order.classe,
-        confermato: order.confermato,
-        preparato: order.preparato
-      }))
+    await ordiniStore.fetchClassOrders(selectedTurno.value)
+    classOrders.value = ordiniStore.classOrders
   } catch (err) {
-    console.error('Errore nel recupero degli ordini per classe:', err)
-    error.value = 'Errore nel caricamento degli ordini per classe.'
+    error.value = ordiniStore.error || 'Errore nel caricamento degli ordini per classe.'
   } finally {
     loading.value = false
   }
@@ -205,16 +97,7 @@ const handleTurnoChange = async (turno: number) => {
   await fetchProfOrders();
 
   if (turno === 2) {
-    classOrders.value = profOrders.value.map(order => ({
-      ...order,
-      classe: order.classe,
-      data: order.data,
-      prodotti: Array.isArray(order.prodotti) ? order.prodotti : [],
-      confermato: order.confermato,
-      oraRitiro: order.oraRitiro,
-      preparato: order.preparato,
-      userData: order.userData
-    }));
+    classOrders.value = ordiniStore.profOrders;
   } else {
     await fetchClassOrders();
   }
@@ -223,19 +106,11 @@ const handleTurnoChange = async (turno: number) => {
 // Handler for when an order is marked as prepared
 const handleOrderMarkedAsPrepared = async ({ classe, turno }: { classe: string, turno: number }) => {
   // Refresh the orders after an order is marked as prepared
+  await ordiniStore.markOrderAsPrepared(classe, turno)
+  
   if (turno === 2) {
     await fetchProfOrders()
-
-    classOrders.value = profOrders.value.map(order => ({
-      ...order,
-      classe: order.classe,
-      data: order.data,
-      prodotti: Array.isArray(order.prodotti) ? order.prodotti : [],
-      confermato: order.confermato,
-      oraRitiro: order.oraRitiro,
-      preparato: order.preparato,
-      userData: order.userData
-    }));
+    classOrders.value = ordiniStore.profOrders
   } else {
     await fetchClassOrders()
   }
@@ -244,19 +119,11 @@ const handleOrderMarkedAsPrepared = async ({ classe, turno }: { classe: string, 
 // Handler for when a product is marked as prepared
 const handleProductMarkedAsPrepared = async ({ productId, turno }: { productId: number, turno: number }) => {
   // Refresh the orders after a product is marked as prepared
+  await ordiniStore.markProductAsPrepared(productId, turno)
+  
   if (turno === 2) {
     await fetchProfOrders()
-
-    classOrders.value = profOrders.value.map(order => ({
-      ...order,
-      classe: order.classe,
-      data: order.data,
-      prodotti: Array.isArray(order.prodotti) ? order.prodotti : [],
-      confermato: order.confermato,
-      oraRitiro: order.oraRitiro,
-      preparato: order.preparato,
-      userData: order.userData
-    }));
+    classOrders.value = ordiniStore.profOrders
   } else {
     await fetchClassOrders()
   }
@@ -277,16 +144,7 @@ onMounted(async () => {
   turnoStore.selectTurno(selectedTurno.value)
 
   if (selectedTurno.value === 2) {
-    classOrders.value = profOrders.value.map(order => ({
-      ...order,
-      classe: order.classe,
-      data: order.data,
-      prodotti: Array.isArray(order.prodotti) ? order.prodotti : [],
-      confermato: order.confermato,
-      oraRitiro: order.oraRitiro,
-      preparato: order.preparato,
-      userData: order.userData
-    }));
+    classOrders.value = ordiniStore.profOrders
   } else {
     await fetchClassOrders()
   }
