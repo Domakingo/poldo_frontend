@@ -7,13 +7,19 @@ import CardProdotto from '@/components/CardProdotto.vue'
 import Filtri from '@/components/Filtri.vue'
 import SearchBar from '@/components/SearchBar.vue'
 import { useCartStore } from '@/stores/cart'
+import { useFavoritesStore } from '@/stores/favorites'
 
 const router = useRouter()
 const productsStore = useProductsStore()
 const cartStore = useCartStore()
+const favoritesStore = useFavoritesStore()
 const searchQuery = ref('')
 
 const haveCart = ref(false)
+
+const favoriteProducts = computed(() => {
+  return searchResults.value.filter(p => favoritesStore.isFavorite(p.id))
+})
 
 const activeFilters = ref({
   ingredienti: [] as string[],
@@ -137,11 +143,24 @@ getCart()
         {{ searchQuery ? `Nessun risultato per "${searchQuery}"` : 'Nessun prodotto trovato' }}
       </div>
 
+      <div v-if="favoriteProducts.length > 0" class="favorites-section">
+        <h2 class="macro-title">Preferiti</h2>
+        <CardGrid :minWidth="isMobile ? '300px' : '280px'">
+          <CardProdotto v-for="product in favoriteProducts" :key="product.id"
+            v-bind="{ ...product, productId: product.id }" :disabled="haveCart" />
+        </CardGrid>
+      </div>
+
       <!-- Mobile view -->
-      <CardGrid v-if="isMobile" :minWidth="'300px'">
-        <CardProdotto v-for="product in macroFilteredProducts" :key="product.id" v-bind="{ productId: product.id }"
-          :disabled="haveCart" />
-      </CardGrid>
+      <template v-if="isMobile">
+        <h2 class="macro-title">
+          {{ selectedMacro === 'cibo' ? 'Cibo' : 'Bibite' }}
+        </h2>
+        <CardGrid :minWidth="'300px'">
+          <CardProdotto v-for="product in macroFilteredProducts" :key="product.id" v-bind="{ productId: product.id }"
+            :disabled="haveCart" />
+        </CardGrid>
+      </template>
 
       <!-- Desktop view -->
       <template v-else>
@@ -254,6 +273,10 @@ getCart()
   width: 100%;
 }
 
+.favorites-section {
+  margin-bottom: 2rem;
+}
+
 .prodotti {
   position: relative;
   height: calc(100vh - 100px);
@@ -276,7 +299,7 @@ getCart()
 .macro-title {
   font-size: 1.8rem;
   color: var(--poldo-primary);
-  margin: 1.5rem 0;
+  margin: 1.5rem 0 1rem;
   padding-bottom: 0.5rem;
   border-bottom: 3px solid var(--poldo-accent);
 }
