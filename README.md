@@ -1,27 +1,45 @@
-# POLDO
+# poldo-front
 
-## Descrizione
+This template should help get you started developing with Vue 3 in Vite.
 
-Poldo è un'applicazione web che consente agli studenti di prenotare cibi e bevande dal bar della scuola in modo rapido e semplice. L'app elimina le code durante gli intervalli, permettendo agli studenti di ordinare in anticipo e ritirare i prodotti quando sono pronti.
+## Recommended IDE Setup
 
-## Funzionalità principali
+[VSCode](https://code.visualstudio.com/) + [Volar](https://marketplace.visualstudio.com/items?itemName=Vue.volar) (and disable Vetur).
 
-- **Prenotazione remota**: Ordina dal tuo smartphone ovunque ti trovi all'interno della scuola
-- **Menu personalizzabile**: Visualizza l'offerta completa del bar con prezzi aggiornati
-- (**Pagamento integrato**: Paga direttamente dall'app con diversi metodi di pagamento) feature da aggiungere possibilmente
-- (**Ordini frequenti**: Salva i tuoi prodotti preferiti per ordinarli rapidamente) feature da aggiungere possibilmente
+## Type Support for `.vue` Imports in TS
 
-## Vantaggi
+TypeScript cannot handle type information for `.vue` imports by default, so we replace the `tsc` CLI with `vue-tsc` for type checking. In editors, we need [Volar](https://marketplace.visualstudio.com/items?itemName=Vue.volar) to make the TypeScript language service aware of `.vue` types.
 
-- Risparmio di tempo durante le pause brevi
-- Riduzione delle code al bar
-- Gestione efficiente degli ordini per il personale del bar
-- Possibilità di ordinare in anticipo per orari specifici
+## Customize configuration
 
-## Come funziona
+See [Vite Configuration Reference](https://vite.dev/config/).
 
-1. Registrati con il tuo account scolastico
-2. Sfoglia il menu e seleziona i prodotti
-3. Effettua l'ordine
-4. Aspetta che il Paninaro invii l'ordine complessivo della tua classe
-5. Ritira il tuo ordine al bar
+## Project Setup
+
+```sh
+npm install
+```
+
+### Compile and Hot-Reload for Development
+
+```sh
+npm run dev
+```
+
+### Type-Check, Compile and Minify for Production
+
+```sh
+npm run build
+```
+
+### Run Unit Tests with [Vitest](https://vitest.dev/)
+
+```sh
+npm run test:unit
+```
+
+### Lint with [ESLint](https://eslint.org/)
+
+```sh
+npm run lint
+```
