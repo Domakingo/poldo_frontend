@@ -21,7 +21,7 @@ const cartStore = useCartStore()
 
 const currentQuantity = computed(() => {
     const item = cartStore.getItems().find(item => item.id === props.productId)
-    return item ? item.quantity : 0
+    return item ? item.selectedQuantity : 0
 })
 
 const handleQuantityChange = (delta: number) => {

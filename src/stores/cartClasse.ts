@@ -4,7 +4,7 @@ import { useTurnoStore } from './turno'
 
 interface CartItem {
   idProdotto: number
-  quantita: number
+  selectedQuantity: number
   prezzo: number
   nome: string
 }
@@ -64,7 +64,7 @@ export const useCartClasseStore = defineStore('cartClasse', () => {
             prodotti: o.prodotti.map(
               (p: any): CartItem => ({
                 idProdotto: p.idProdotto,
-                quantita: p.quantita,
+                selectedQuantity: p.quantita,
                 prezzo: p.prezzo,
                 nome: p.nome,
               }),
@@ -85,6 +85,9 @@ export const useCartClasseStore = defineStore('cartClasse', () => {
 
     const result = await fetch(`http://figliolo.it:5006/v1/ordini/classi/me/conferma/${id}`, {
       method: 'PATCH',
+      headers: {
+        'Content-Type': 'application/json',
+      },
       credentials: 'include',
       body: JSON.stringify({
         nTurno: currentTurno.value,
@@ -108,6 +111,9 @@ export const useCartClasseStore = defineStore('cartClasse', () => {
       const result = await fetch(`http://figliolo.it:5006/v1/ordini/classi/me/conferma`, {
         method: 'PUT',
         credentials: 'include',
+        headers: {
+          'Content-Type': 'application/json',
+        },
         body: JSON.stringify({
           nTurno: currentTurno.value,
         }),
