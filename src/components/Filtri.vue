@@ -1,11 +1,9 @@
 <template>
   <div>
-    <!-- Pulsante fisso sempre visibile -->
     <button class="filtri-btn" @click="toggleSidebar">
       <span>Filtri</span>
     </button>
 
-    <!-- Sidebar -->
     <div ref="filtriContainer" class="sidebar" :class="{ open: isSidebarOpen }">
       <div class="sidebar-content">
         <div class="sidebar-header">
@@ -13,16 +11,20 @@
           <button class="close-btn" @click="toggleSidebar">×</button>
         </div>
 
-        <div class="filter-section">
+        <div class="filter-section" v-if="maxPrice > minPrice || (maxPrice > 0 && minPrice === 0)">
           <h4>Prezzo</h4>
-          <div class="price-inputs">
-            <div class="price-row">
-              <label for="max-price">Max:</label>
-              <input id="max-price" type="number" v-model.number="priceRange.max" :min="0" :max="maxPrice"
-                @input="validatePriceRange" />
+          <div class="range-slider">
+            <input type="range" :min="minPrice" :max="maxPrice" step="0.1" v-model.number="priceRange.min"
+              @input="handleRangeInput('min')" />
+            <input type="range" :min="minPrice" :max="maxPrice" step="0.1" v-model.number="priceRange.max"
+              @input="handleRangeInput('max')" />
+            <div class="range-values">
+              <span>Min: €{{ priceRange.min.toFixed(2) }}</span>
+              <span>Max: €{{ priceRange.max.toFixed(2) }}</span>
             </div>
           </div>
         </div>
+
 
         <div class="filter-section">
           <h4>Ingredienti</h4>
@@ -87,6 +89,10 @@ export default defineComponent({
     maxPrice: {
       type: Number,
       default: 100
+    },
+    minPrice: {
+      type: Number,
+      default: 0
     }
   },
   data() {
@@ -98,6 +104,7 @@ export default defineComponent({
         attivo: null as boolean | null,
       },
       priceRange: {
+        min: this.minPrice,
         max: this.maxPrice
       }
     }
@@ -106,37 +113,47 @@ export default defineComponent({
     toggleSidebar() {
       this.isSidebarOpen = !this.isSidebarOpen
       if (this.isSidebarOpen) {
-        setTimeout(() => document.addEventListener('click', this.handleOutsideClick), 0)
+        this.$nextTick(() => {
+          document.addEventListener('click', this.handleOutsideClick)
+        })
       } else {
         document.removeEventListener('click', this.handleOutsideClick)
       }
     },
     handleOutsideClick(event: Event) {
       const container = this.$refs.filtriContainer as HTMLElement
-      if (container && !container.contains(event.target as Node)) {
+      const filtriBtn = document.querySelector('.filtri-btn')
+      if (container && !container.contains(event.target as Node) && (!filtriBtn || !filtriBtn.contains(event.target as Node))) {
         this.isSidebarOpen = false
         document.removeEventListener('click', this.handleOutsideClick)
       }
     },
-    validatePriceRange() {
-      if (this.priceRange.max < 0) this.priceRange.max = 0
-      if (this.priceRange.max > this.maxPrice) this.priceRange.max = this.maxPrice
-      this.applyFilters()
+    handleRangeInput(type: 'min' | 'max') {
+      if (this.priceRange.min > this.priceRange.max) {
+        if (type === 'min') {
+          this.priceRange.max = this.priceRange.min;
+        } else {
+          this.priceRange.min = this.priceRange.max;
+        }
+      }
+      this.applyFilters();
     },
     applyFilters() {
       this.$emit("filters-applied", {
         ingredienti: this.selections.ingredienti,
         tags: this.selections.tags,
         attivo: this.selections.attivo,
-        prezzo: this.priceRange
+        prezzo: {
+          min: this.priceRange.min,
+          max: this.priceRange.max
+        }
       })
     },
     resetFilters() {
       this.selections.ingredienti = []
       this.selections.tags = []
       this.selections.attivo = null
-      this.priceRange = { max: this.maxPrice }
-      this.applyFilters()
+      this.priceRange.max = this.maxPrice;
     }
   },
   watch: {
@@ -144,15 +161,43 @@ export default defineComponent({
       handler: 'applyFilters',
       deep: true
     },
-    priceRange: {
-      handler: 'applyFilters',
-      deep: true
+    'priceRange.max': {
+      handler(newVal) {
+        let max = newVal;
+
+        if (max < this.minPrice) max = this.minPrice;
+        if (max > this.maxPrice) max = this.maxPrice;
+
+        if (newVal !== max) {
+          this.priceRange.max = max;
+        } else {
+          this.applyFilters();
+        }
+      },
+    },
+    'priceRange.min': {
+      handler(newVal) {
+        let min = newVal;
+
+        if (min < this.minPrice) min = this.minPrice;
+        if (min > this.maxPrice) min = this.maxPrice;
+
+        if (newVal !== min) {
+          this.priceRange.min = min;
+        } else {
+          this.applyFilters();
+        }
+      },
+    },
+    maxPrice(newVal) {
+      this.priceRange.max = newVal;
+    },
+    minPrice(newVal) {
+      this.priceRange.min = newVal;
     }
   },
   mounted() {
-    if (this.isSidebarOpen) {
-      setTimeout(() => document.addEventListener('click', this.handleOutsideClick), 0)
-    }
+    this.priceRange.max = this.maxPrice;
   },
   beforeUnmount() {
     document.removeEventListener('click', this.handleOutsideClick)
@@ -241,12 +286,65 @@ export default defineComponent({
   color: var(--poldo-primary);
 }
 
+.price-inputs {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
 .price-inputs input {
   width: 80px;
   padding: 8px;
   border: 1px solid var(--color-border);
   border-radius: 6px;
   background: var(--color-background);
+  color: var(--poldo-text);
+}
+
+.range-slider {
+  position: relative;
+  height: 50px;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+}
+
+.range-slider input[type="range"] {
+  position: absolute;
+  width: 100%;
+  pointer-events: none;
+  -webkit-appearance: none;
+  background: none;
+  height: 40px;
+}
+
+.range-slider input[type="range"]::-webkit-slider-thumb {
+  pointer-events: auto;
+  -webkit-appearance: none;
+  height: 16px;
+  width: 16px;
+  border-radius: 50%;
+  background: var(--poldo-primary);
+  cursor: pointer;
+  border: 2px solid white;
+  box-shadow: 0 0 2px rgba(0, 0, 0, 0.5);
+}
+
+.range-slider input[type="range"]::-moz-range-thumb {
+  pointer-events: auto;
+  height: 16px;
+  width: 16px;
+  border-radius: 50%;
+  background: var(--poldo-primary);
+  cursor: pointer;
+  border: 2px solid white;
+}
+
+.range-values {
+  display: flex;
+  justify-content: space-between;
+  font-size: 14px;
+  margin-top: 40px;
   color: var(--poldo-text);
 }
 
