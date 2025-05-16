@@ -19,11 +19,11 @@
           </template>
           <template v-else>
             {{ getPreparedQuantity(product.idProdotto) }}/{{ getTotalQuantity(product.idProdotto) }}
-          </template>
-        </div>        <button
+          </template>        </div>        <button
           v-if="!isProductFullyPrepared(product.idProdotto)"
           class="mark-prepared-btn"
-          @click="markProductAsPrepared(product.idProdotto)"
+          @click="ordiniStore.markProductAsPrepared(product.idProdotto, props.currentTurno)
+            .then(() => fetchProductsData(props.currentTurno))"
           title="Segna come preparato"
         >
           <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
@@ -221,32 +221,6 @@ const isProductFullyPrepared = (productId: number): boolean => {
 
 const emit = defineEmits(['product-marked-as-prepared'])
 
-// Function to mark a product as prepared
-const markProductAsPrepared = async (productId: number) => {  try {
-    // Use direct fetch with the correct endpoint without leading slash
-    const url = `${API_CONFIG.baseURL}/ordini/prodotti/${productId}/prepara?nTurno=${props.currentTurno}`;
-    
-    const response = await fetch(url, {
-      method: 'PUT',
-      credentials: 'include',
-      mode: 'cors'
-    });
-
-    if (!response.ok) {
-      throw new Error(`Errore API: ${response.status} ${response.statusText}`);
-    }
-
-    // Refresh the products data after marking as prepared
-    await fetchProductsData(props.currentTurno);
-
-    // Notify parent component that the product was marked as prepared
-    emit('product-marked-as-prepared', { productId, turno: props.currentTurno });
-  } catch (error) {
-    console.error('Errore nel marcare il prodotto come preparato:', error);
-    alert('Errore nel marcare il prodotto come preparato. Riprova.');
-  }
-};
-
 // Add state for products data from API
 const productsData = ref<{
   idProdotto: number;
@@ -261,26 +235,16 @@ const productsData = ref<{
 // Function to fetch products data from API
 const fetchProductsData = async (turno: number = props.currentTurno) => {
   try {
+    // Set the date in the store to today
     const today = new Date();
     const dateStr = ordiniStore.formatDate(today);
-
-    // Use correct endpoint for class orders without leading slash
-    const url = `${API_CONFIG.baseURL}/ordini/classi?startDate=${dateStr}&endDate=${dateStr}&nTurno=${turno}`;
+    ordiniStore.setSelectedDate(dateStr);
     
-    console.log('Fetching from URL:', url);
+    // Use the store method to fetch class orders
+    await ordiniStore.fetchClassOrders(turno);
     
-    // Use direct fetch call with credentials
-    const response = await fetch(url, {
-      credentials: 'include',
-      mode: 'cors'
-    });
-
-    if (!response.ok) {
-      throw new Error(`Errore API: ${response.status} ${response.statusText}`);
-    }
-
-    const data = await response.json();
-    console.log('API response data:', data);
+    // Get the class orders from the store
+    const data = ordiniStore.classOrders;
     
     // Process the data to ensure it matches the expected format
     // The API returns orders by class, but we need product details
@@ -317,7 +281,7 @@ const fetchProductsData = async (turno: number = props.currentTurno) => {
       
       productsData.value = Array.from(productMap.values());
     } else {
-      console.error('API response is not an array:', data);
+      console.error('Data is not an array:', data);
       productsData.value = [];
     }
   } catch (error) {
