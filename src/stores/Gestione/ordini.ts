@@ -122,8 +122,8 @@ export const useOrdiniStore = defineStore('ordini', () => {
   async function fetchProfOrders() {
     loading.value = true
     try {
-      const response = await handleRequest<any>(
-        `ordini/classi?startDate=${selectedDate.value}&endDate=${selectedDate.value}&nTurno=2`,
+      const data = await handleRequest<any[]>(
+        `ordini/classi?startDate=${selectedDate.value}&endDate=${selectedDate.value}`,
         'Errore nel recupero degli ordini dei professori'
       )
 
@@ -231,29 +231,54 @@ export const useOrdiniStore = defineStore('ordini', () => {
     }
   }
 
-  // Funzione per segnare un prodotto come preparato
-  async function markProductAsPrepared(productId: number, turno: number) {
-    try {
-      await handleRequest<any>(
-        `prodotti/${productId}/prepara`,
-        'Errore nel marcare il prodotto come preparato',
-        { method: 'PUT' }
-      )
-
-      // Aggiorna gli ordini in base al turno
-      if (turno === 2) {
-        await fetchProfOrders()
-      } else {
-        await fetchClassOrders(turno)
-      }
-
-      return true
-    } catch (error) {
-      console.error('Errore nel marcare il prodotto come preparato:', error)
-      return false
+async function markProductAsPrepared(productId: number, turno: number) {
+  try {
+    // Make sure productId and turno are valid numbers
+    if (!productId || !turno) {
+      throw new Error('ID prodotto e turno sono obbligatori');
     }
-  }
 
+    // Fetch user info to print user ID
+    try {
+      const userResponse = await fetch(`${API_CONFIG.baseURL}/auth/me`, { 
+        credentials: 'include',
+        mode: 'cors'
+      });
+      
+      if (userResponse.ok) {
+        const userData = await userResponse.json();
+        console.log('Utente ID che sta effettuando la richiesta:', userData.id);
+        console.log('Dati utente:', userData);
+      } else {
+        console.log('Non è stato possibile recuperare l\'ID utente');
+      }
+    } catch (userError) {
+      console.error('Errore nel recupero delle informazioni utente:', userError);
+    }
+
+    await handleRequest<any>(
+      `ordini/prodotti/${productId}/prepara?nTurno=${turno}`,
+      'Errore nel marcare il prodotto come preparato',
+      { 
+        method: 'PUT',
+        // Don't need to send Content-Type: application/json as there's no body
+        headers: {}
+      }
+    )
+
+    // Aggiorna gli ordini in base al turno
+    if (turno === 2) {
+      await fetchProfOrders()
+    } else {
+      await fetchClassOrders(turno)
+    }
+
+    return true
+  } catch (error) {
+    console.error('Errore nel marcare il prodotto come preparato:', error)
+    return false
+  }
+}
   // Funzione per modificare la data selezionata
   function setSelectedDate(date: string) {
     selectedDate.value = date
