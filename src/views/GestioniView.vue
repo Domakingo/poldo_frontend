@@ -8,17 +8,36 @@
       :message="alertMessage" 
       :type="alertType" 
       @close="alertMessage = ''" 
-    />
-
-    <!-- Pulsante per creare una nuova gestione -->
-    <div class="action-buttons">
-      <button class="btn create" @click="openCreateModal">
-        <i class="fas fa-plus-circle"></i> Nuova Gestione
-      </button>
-    </div>    <!-- Tabella gestioni -->
+    />    <!-- Barra di ricerca e pulsante per creare una nuova gestione -->
+    <div class="action-header">      <div class="search-container">
+        <div class="search-input-group">
+          <input 
+            type="text" 
+            v-model="searchQuery" 
+            placeholder="Cerca gestione per nome o ID..." 
+            class="search-input"
+          />
+          <button 
+            v-if="searchQuery" 
+            @click="searchQuery = ''" 
+            class="clear-search"
+            title="Cancella ricerca"
+          >
+            ×
+          </button>
+        </div>
+      </div>
+      <div class="action-buttons">
+        <button class="btn create" @click="openCreateModal">
+          <i class="fas fa-plus-circle"></i> Nuova Gestione
+        </button>
+      </div>
+    </div>
+    
+    <!-- Tabella gestioni -->
     <div class="gestioni-list-container">
       <div class="gestioni-scroll-wrapper">
-        <div v-if="gestioni.length > 0" class="gestioni-list">
+        <div v-if="filteredGestioni.length > 0" class="gestioni-list">
           <table>
             <thead>
               <tr>
@@ -28,7 +47,7 @@
               </tr>
             </thead>
             <tbody>
-              <tr v-for="gestione in gestioni" :key="gestione.idGestione">
+              <tr v-for="gestione in filteredGestioni" :key="gestione.idGestione">
                 <td>{{ gestione.idGestione }}</td>
                 <td>{{ gestione.nome }}</td>
                 <td class="actions">
@@ -54,6 +73,8 @@
               </tr>
             </tbody>
           </table>
+        </div>        <div v-else-if="gestioni.length > 0" class="no-data">
+          <p>Nessuna gestione trovata con il criterio di ricerca.</p>
         </div>
         <div v-else class="no-data">
           <p>Nessuna gestione trovata.</p>
@@ -217,7 +238,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, reactive, onMounted } from 'vue';
+import { ref, reactive, onMounted, computed } from 'vue';
 import Alert from '@/components/Alert.vue';
 import { useGestioneStore } from '@/stores/gestioni';
 import { useUserStore } from '@/stores/users';
@@ -238,6 +259,7 @@ const alertMessage = ref('');
 const alertType = ref<'success' | 'error'>('success');
 const newUserId = ref<number | string>('');
 const availableUsers = ref<{id: number, name: string}[]>([]);
+const searchQuery = ref('');
 
 // Reactive form data
 const formData = reactive({
@@ -250,6 +272,18 @@ const gestioni = ref<Gestione[]>([]);
 const selectedGestione = ref<Gestione | null>(null);
 const gestioneUsers = ref<User[]>([]);
 const isLoading = ref(false);
+
+// Filtered gestioni based on search query
+const filteredGestioni = computed(() => {
+  if (!searchQuery.value.trim()) {
+    return gestioni.value;
+  }
+  const query = searchQuery.value.toLowerCase().trim();
+  return gestioni.value.filter(gestione => 
+    gestione.nome.toLowerCase().includes(query) || 
+    gestione.idGestione.toString().includes(query)
+  );
+});
 
 // Lifecycle hooks
 onMounted(async () => {
@@ -498,8 +532,57 @@ const showAlert = (message: string, type: 'success' | 'error' = 'success') => {
   font-size: 2rem;
 }
 
-.action-buttons {
+.action-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
   margin-bottom: 20px;
+  flex-wrap: wrap;
+  gap: 15px;
+}
+
+.search-container {
+  flex: 1;
+  min-width: 250px;
+}
+
+.search-input-group {
+  position: relative;
+  display: flex;
+}
+
+.search-input {
+  width: 100%;
+  padding: 8px 12px;
+  border: 1px solid #ccc;
+  border-radius: 4px;
+  font-size: 1rem;
+}
+
+.clear-search {
+  position: absolute;
+  right: 10px;
+  top: 50%;
+  transform: translateY(-50%);
+  background: none;
+  border: none;
+  font-size: 20px;
+  color: #888;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 24px;
+  height: 24px;
+  border-radius: 50%;
+}
+
+.clear-search:hover {
+  background: #eee;
+  color: #333;
+}
+
+.action-buttons {
   display: flex;
   justify-content: flex-end;
 }
