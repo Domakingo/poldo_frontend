@@ -3,6 +3,7 @@ import { defineStore } from 'pinia'
 import { ref } from 'vue'
 import { API_CONFIG } from '@/utils/api'
 import { handleRequest } from '@/utils/api'
+import { useAuthStore } from '@/stores/auth'
 
 // Interfaces
 export interface Product {
@@ -29,6 +30,7 @@ export interface Order {
 
 export interface ClassOrder {
   classe: string
+  classeId?: number
   data: string
   prodotti: Product[]
   idOrdine?: number
@@ -155,21 +157,24 @@ export const useOrdiniStore = defineStore('ordini', () => {
       loading.value = false
     }
   }
-  
-  // Funzione per segnare un ordine come preparato
-  async function markOrderAsPrepared(classe: string, turno: number) {
+    // Funzione per segnare un ordine come preparato
+  async function markOrderAsPrepared(classeId: number | string, turno: number) {
     try {
-      await handleRequest<any>(
-        `ordini/classi/${classe}/turno/${turno}/prepara`,
+      console.log(`Marking order for class ID ${classeId} and turno ${turno} as prepared...`);
+      
+      const response = await handleRequest<any>(
+        `ordini/classi/${classeId}/turno/${turno}/prepara`,
         'Errore nel marcare l\'ordine come preparato',
         { method: 'PUT' }
       )
-
-      // Aggiorna gli ordini in base al turno
+      
+      console.log(`API response for markOrderAsPrepared:`, response);      // Aggiorna gli ordini in base al turno
       if (turno === 2) {
-        await fetchProfOrders()
+        console.log(`Refreshing professor orders after marking class ID ${classeId} order as prepared`);
+        await fetchProfOrders();
       } else {
-        await fetchClassOrders(turno)
+        console.log(`Refreshing class orders for turno ${turno} after marking class ID ${classeId} order as prepared`);
+        await fetchClassOrders(turno);
       }
 
       return true
@@ -181,44 +186,43 @@ export const useOrdiniStore = defineStore('ordini', () => {
 
 async function markProductAsPrepared(productId: number, turno: number) {
   try {
-    // Make sure productId and turno are valid numbers
-    if (!productId || !turno) {
-      throw new Error('ID prodotto e turno sono obbligatori');
+    // Make sure productId and turno are valid
+    if (productId === undefined || productId === null) {
+      throw new Error('ID prodotto è obbligatorio');
+    }
+    
+    if (turno === undefined || turno === null) {
+      throw new Error('Turno è obbligatorio');
     }
 
-    // Fetch user info to print user ID
+    // Use the auth store to get user information
+    const authStore = useAuthStore();
+    
     try {
-      const userResponse = await fetch(`${API_CONFIG.BASE_URL}/auth/me`, { 
-        credentials: 'include',
-        mode: 'cors'
-      });
-      
-      if (userResponse.ok) {
-        const userData = await userResponse.json();
-        console.log('Utente ID che sta effettuando la richiesta:', userData.id);
-        console.log('Dati utente:', userData);
-      } else {
-        console.log('Non è stato possibile recuperare l\'ID utente');
+      // If not already authenticated, check authentication
+      if (!authStore.isAuthenticated) {
+        await authStore.checkAuth();
       }
     } catch (userError) {
-      console.error('Errore nel recupero delle informazioni utente:', userError);
+      // Silently continue, just log the error
     }
-
+    
+    console.log(`Marking product ID ${productId} as prepared for turno ${turno}`);
+    
     await handleRequest<any>(
       `ordini/prodotti/${productId}/prepara?nTurno=${turno}`,
       'Errore nel marcare il prodotto come preparato',
       { 
         method: 'PUT',
-        // Don't need to send Content-Type: application/json as there's no body
         headers: {}
       }
     )
 
     // Aggiorna gli ordini in base al turno
     if (turno === 2) {
-      await fetchProfOrders()
+      await fetchProfOrders();
     } else {
-      await fetchClassOrders(turno)
+      await fetchClassOrders(turno);
     }
 
     return true

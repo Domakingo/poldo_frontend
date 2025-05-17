@@ -19,11 +19,10 @@
           </template>
           <template v-else>
             {{ getPreparedQuantity(product.idProdotto) }}/{{ getTotalQuantity(product.idProdotto) }}
-          </template>        </div>        <button
-          v-if="!isProductFullyPrepared(product.idProdotto)"
+          </template>
+        </div>        <button          v-if="!isProductFullyPrepared(product.idProdotto)"
           class="mark-prepared-btn"
-          @click="ordiniStore.markProductAsPrepared(product.idProdotto, props.currentTurno)
-            .then(() => fetchProductsData(props.currentTurno))"
+          @click="markProductPrepared(product.idProdotto)"
           title="Segna come preparato"
         >
           <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
@@ -48,6 +47,9 @@ interface Product {
   quantita: number;
   prezzo: number;
   preparato?: boolean;
+  quantitaOrdinata?: number;
+  tuttiPreparati?: boolean;
+  quantitaPreparata?: number;
 }
 
 interface ClassOrder {
@@ -67,7 +69,7 @@ const props = defineProps({
   }
 })
 
-const uniqueProducts = computed(() => {
+const uniqueProducts = computed<Product[]>(() => {
   // If we have API data, use that
   if (productsData.value && productsData.value.length > 0) {
     // Check if the data has the expected format
@@ -79,21 +81,19 @@ const uniqueProducts = computed(() => {
       return productsData.value.map(product => ({
         idProdotto: product.idProdotto,
         nome: product.nome || 'Prodotto senza nome',
+        quantita: product.quantitaOrdinata || 0, // Map to the Product interface
         prezzo: product.prezzo || 0,
+        preparato: product.tuttiPreparati || false, // Map tuttiPreparati to preparato
         quantitaOrdinata: product.quantitaOrdinata || 0,
         tuttiPreparati: product.tuttiPreparati || false,
         quantitaPreparata: product.quantitaPreparata || 0
       }));
-    } else {
-      console.warn('Formato dei dati dei prodotti non valido:', productsData.value);
     }
   }
 
   // Otherwise, fall back to client-side calculation
   const products = new Map()
-
   if (!Array.isArray(props.classOrders)) {
-    console.error('classOrders non è un array:', props.classOrders)
     return []
   }
 
@@ -106,11 +106,12 @@ const uniqueProducts = computed(() => {
       if (product.idProdotto === undefined) {
         return
       }
-        if (!products.has(product.idProdotto)) {
-        products.set(product.idProdotto, {
+        if (!products.has(product.idProdotto)) {        products.set(product.idProdotto, {
           idProdotto: product.idProdotto,
           nome: product.nome,
-          prezzo: product.prezzo
+          quantita: product.quantita || 0, // Add the quantita property
+          prezzo: product.prezzo,
+          preparato: product.preparato || false
         })
       }
     })
@@ -242,8 +243,7 @@ const fetchProductsData = async (turno: number = props.currentTurno) => {
     
     // Use the store method to fetch class orders
     await ordiniStore.fetchClassOrders(turno);
-    
-    // Get the class orders from the store
+      // Get the class orders from the store
     const data = ordiniStore.classOrders;
     
     // Process the data to ensure it matches the expected format
@@ -253,27 +253,38 @@ const fetchProductsData = async (turno: number = props.currentTurno) => {
       const productMap = new Map();
       
       data.forEach(order => {
-        if (order && Array.isArray(order.prodotti)) {
-          order.prodotti.forEach(product => {
-            if (product && product.idProdotto) {
-              const existingProduct = productMap.get(product.idProdotto);
+        if (order && Array.isArray(order.prodotti)) {          order.prodotti.forEach((product: { 
+            idProdotto: number; 
+            nome?: string; 
+            prezzo?: number;
+            quantita?: number;
+            preparato?: boolean 
+          }) => {
+            if (product && product.idProdotto) {const existingProduct = productMap.get(product.idProdotto) as Product & {
+                quantitaOrdinata: number;
+                quantitaPreparata: number;
+                tuttiPreparati: boolean;
+              };
+              
+              // Check if the product itself is marked as prepared
+              const isProductPrepared = !!product.preparato;
               
               if (existingProduct) {
                 // Update existing product entry
                 existingProduct.quantitaOrdinata += product.quantita || 0;
-                existingProduct.quantitaPreparata += order.preparato ? (product.quantita || 0) : 0;
+                existingProduct.quantitaPreparata += isProductPrepared ? (product.quantita || 0) : 0;
                 existingProduct.tuttiPreparati = (existingProduct.quantitaOrdinata === existingProduct.quantitaPreparata);
-              } else {
-                // Create new product entry
+              } else {                // Create new product entry
                 productMap.set(product.idProdotto, {
                   idProdotto: product.idProdotto,
                   nome: product.nome || 'Prodotto senza nome',
+                  quantita: product.quantita || 0, // Added for Product interface compatibility
                   prezzo: product.prezzo || 0,
                   quantitaOrdinata: product.quantita || 0,
-                  quantitaPreparata: order.preparato ? (product.quantita || 0) : 0,
-                  tuttiPreparati: !!order.preparato
-                });
-              }
+                  quantitaPreparata: isProductPrepared ? (product.quantita || 0) : 0,
+                  tuttiPreparati: isProductPrepared,
+                  preparato: isProductPrepared
+                });}
             }
           });
         }
@@ -281,19 +292,35 @@ const fetchProductsData = async (turno: number = props.currentTurno) => {
       
       productsData.value = Array.from(productMap.values());
     } else {
-      console.error('Data is not an array:', data);
       productsData.value = [];
-    }  } catch (error) {
-    console.error('Errore nel recupero dei dati dei prodotti:', error);
-    // Show a more detailed error message in the console
-    if (error instanceof SyntaxError) {
-      console.error('Risposta non valida: errore di parsing JSON');
     }
+  } catch (error) {
     // Fall back to client-side calculation if API fails
     productsData.value = [];
   }
+};// Function to mark a product as prepared
+const markProductPrepared = async (productId: number) => {
+  try {
+    if (!productId || !props.currentTurno) {
+      alert('Errore: ID prodotto o turno mancante');
+      return;
+    }
+    
+    const success = await ordiniStore.markProductAsPrepared(productId, props.currentTurno);
+    
+    if (success) {
+      // Refresh the data after marking the product as prepared
+      await fetchProductsData(props.currentTurno);
+    } else {
+      throw new Error('Errore durante il processo di preparazione del prodotto');
+    }
+  } catch (error) {
+    console.error('Errore nel marcare il prodotto come preparato:', error);
+    alert('Errore nel marcare il prodotto come preparato. Riprova.');
+  }
 };
 
+// Call on mount and when products change
 onMounted(() => {
   // Fetch products data for the selected turno on component mount
   fetchProductsData(props.currentTurno);
@@ -303,7 +330,6 @@ onMounted(() => {
 watch(() => props.currentTurno, (newTurno) => {
   fetchProductsData(newTurno);
 });
-
 </script>
 
 <style scoped>

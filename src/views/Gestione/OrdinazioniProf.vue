@@ -262,13 +262,13 @@ const calculateOrderTotal = (order: Order | ClassOrder): number => {
 // Function to mark an order as prepared
 const markOrderAsPrepared = async (order: ClassOrder) => {
   try {
-    if (!order.classe) {
-      console.error('Impossibile contrassegnare l\'ordine: classe mancante')
+    if (!order.classe || !order.classeId) {
+      console.error('Impossibile contrassegnare l\'ordine: classe o ID classe mancante')
       return
     }
 
     // Professor orders are always in turno 2
-    const success = await ordiniStore.markOrderAsPrepared(order.classe, 2)
+    const success = await ordiniStore.markOrderAsPrepared(order.classeId, 2)
     
     if (success) {
       // Refresh the orders

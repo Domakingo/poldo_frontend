@@ -74,9 +74,7 @@ const selectedTurnoTimes = computed(() => {
   }
 
   const turno = turnoStore.turni.find(t => t.n === selectedTurno.value)
-
   if (!turno) {
-    console.error(`Turno ${selectedTurno.value} not found!`);
     error.value = `Turno ${selectedTurno.value} non trovato. Selezionare un altro turno.`
     return null
   }
@@ -93,20 +91,21 @@ const selectedTurnoTimes = computed(() => {
 const handleTurnoChange = async (turno: number) => {
   selectedTurno.value = turno;
   turnoStore.selectTurno(turno);
-
-  await fetchProfOrders();
-
+  
   if (turno === 2) {
+    // For turno 2 (professors), we use profOrders
+    await fetchProfOrders();
     classOrders.value = ordiniStore.profOrders;
   } else {
+    // For other turni (students), fetch class orders
     await fetchClassOrders();
   }
 }
 
 // Handler for when an order is marked as prepared
-const handleOrderMarkedAsPrepared = async ({ classe, turno }: { classe: string, turno: number }) => {
+const handleOrderMarkedAsPrepared = async ({ classe, classeId, turno }: { classe: string, classeId: number, turno: number }) => {
   // Refresh the orders after an order is marked as prepared
-  await ordiniStore.markOrderAsPrepared(classe, turno)
+  await ordiniStore.markOrderAsPrepared(classeId, turno)
   
   if (turno === 2) {
     await fetchProfOrders()
@@ -133,19 +132,34 @@ const handleProductMarkedAsPrepared = async ({ productId, turno }: { productId: 
 // Lifecycle
 onMounted(async () => {
   await turnoStore.fetchTurni()
-  await fetchProfOrders()
-
+  
+  // Student turns are typically n=1, professor turns are n=2
+  const studentTurns = availableTurni.value.filter(t => t.n === 1)
+  const professorTurns = availableTurni.value.filter(t => t.n === 2)
+  
+  // Determine which turn to select initially
+  // First check if we have a saved selection
   if (turnoStore.turnoSelezionato > 0) {
     selectedTurno.value = turnoStore.turnoSelezionato
-  } else if (availableTurni.value.length > 0) {
+  } 
+  // Otherwise prefer student turn (usually turno 1) if available
+  else if (availableTurni.value.some(t => t.n === 1)) {
+    selectedTurno.value = 1
+  }
+  // Fallback to first available turn
+  else if (availableTurni.value.length > 0) {
     selectedTurno.value = availableTurni.value[0].n
   }
 
   turnoStore.selectTurno(selectedTurno.value)
 
+  // Load the appropriate orders based on the selected turn
   if (selectedTurno.value === 2) {
+    // For professor turn, load professor orders
+    await fetchProfOrders()
     classOrders.value = ordiniStore.profOrders
   } else {
+    // For student turns, load class orders
     await fetchClassOrders()
   }
 })
@@ -174,12 +188,21 @@ onMounted(async () => {
       />
 
       <!-- Sezione ordini -->
-      <div class="orders-section">
-        <TurnoTabs
-          :availableTurni="availableTurni"
-          :selectedTurno="selectedTurno"
-          @turnoChange="handleTurnoChange"
-        />
+      <div class="orders-section">        <div class="turno-selection-container">
+          <TurnoTabs
+            :availableTurni="availableTurni"
+            :selectedTurno="selectedTurno"
+            @turnoChange="handleTurnoChange"
+          />
+          
+          <!-- Current view indicator -->
+          <div class="current-view-indicator">
+            <span class="view-label">Tipo ordini:</span>
+            <span class="view-value">
+              {{ selectedTurno === 2 ? 'Professori' : 'Classi' }}
+            </span>
+          </div>
+        </div>
 
         <div class="orders-content">
           <ProductTotals
@@ -301,9 +324,50 @@ h1 {
   gap: 5px;
 }
 
+.turno-selection-container {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 10px;
+}
+
+.current-view-indicator {
+  background-color: var(--poldo-card-bg);
+  padding: 5px 15px;
+  border-radius: 4px;
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  font-size: 0.9rem;
+  border: 1px solid var(--color-border);
+}
+
+.view-label {
+  font-weight: bold;
+  color: var(--poldo-primary);
+}
+
+.view-value {
+  padding: 2px 8px;
+  background-color: var(--poldo-accent-light);
+  border-radius: 4px;
+  font-weight: 500;
+}
+
 @media (max-width: 768px) {
   .orders-content {
     flex-direction: column;
+  }
+  
+  .turno-selection-container {
+    flex-direction: column;
+    gap: 10px;
+    align-items: flex-start;
+  }
+  
+  .current-view-indicator {
+    width: 100%;
+    justify-content: center;
   }
 }
 </style>
