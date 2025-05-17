@@ -1,6 +1,7 @@
 import { defineStore } from 'pinia'
 import { ref, computed } from 'vue'
 import { useTurnoStore } from './turno'
+import { API_CONFIG } from '@/utils/api'
 
 interface CartItem {
   idProdotto: number
@@ -37,7 +38,7 @@ export const useCartClasseStore = defineStore('cartClasse', () => {
 
     try {
       const response = await fetch(
-        `http://figliolo.it:5006/v1/ordini/classi/me/oggi?nTurno=${currentTurno.value}`,
+        `${API_CONFIG.BASE_URL}/ordini/classi/me/oggi?nTurno=${currentTurno.value}`,
         { method: 'GET', credentials: 'include' },
       )
 
@@ -83,7 +84,7 @@ export const useCartClasseStore = defineStore('cartClasse', () => {
 
   async function confOrd(id: number, status: boolean) : Promise<true | false> {
 
-    const result = await fetch(`http://figliolo.it:5006/v1/ordini/classi/me/conferma/${id}`, {
+    const result = await fetch(`${API_CONFIG.BASE_URL}/ordini/classi/me/conferma/${id}`, {
       method: 'PATCH',
       credentials: 'include',
       body: JSON.stringify({
@@ -105,7 +106,7 @@ export const useCartClasseStore = defineStore('cartClasse', () => {
 
   async function confOrdClasse() : Promise<true | false> {
 
-      const result = await fetch(`http://figliolo.it:5006/v1/ordini/classi/me/conferma`, {
+      const result = await fetch(`${API_CONFIG.BASE_URL}/ordini/classi/me/conferma`, {
         method: 'PUT',
         credentials: 'include',
         body: JSON.stringify({

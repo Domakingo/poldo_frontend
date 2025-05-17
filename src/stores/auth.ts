@@ -1,5 +1,6 @@
 import { defineStore } from 'pinia'
 import { ref } from 'vue'
+import { API_CONFIG } from '@/utils/api'
 
 interface User {
   nome: string
@@ -14,7 +15,7 @@ export const useAuthStore = defineStore('auth', () => {
   const checkAuth = async () => {
   try {
     loading.value = true
-    const response = await fetch('http://figliolo.it:5006/v1/auth/check', {
+    const response = await fetch(`${API_CONFIG.BASE_URL}/auth/check`, {
       method: 'GET',
       credentials: 'include'
     })

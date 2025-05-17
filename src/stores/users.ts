@@ -1,11 +1,10 @@
 // This store handles all user-related API calls and state management
 import { defineStore } from 'pinia';
 import { ref, reactive } from 'vue';
-
-const API_BASE_URL = 'http://figliolo.it:5006/v1';
+import { API_CONFIG } from '@/utils/api';
 
 // Define the User interface
-interface User {
+export interface User {
   idUtente: number;
   mail: string;
   ruolo: string;
@@ -46,7 +45,7 @@ export const useUserStore = defineStore('user', () => {
 
       const queryString = queryParams.toString() ? `?${queryParams.toString()}` : '';
 
-      const response = await fetch(`${API_BASE_URL}/utenti${queryString}`, {
+      const response = await fetch(`${API_CONFIG.BASE_URL}/utenti${queryString}`, {
         method: 'GET',
         credentials: 'include'
       });
@@ -76,7 +75,7 @@ export const useUserStore = defineStore('user', () => {
     error.value = '';
 
     try {
-      const response = await fetch(`${API_BASE_URL}/utenti/${userId}`, {
+      const response = await fetch(`${API_CONFIG.BASE_URL}/utenti/${userId}`, {
         method: 'GET',
         credentials: 'include'
       });
@@ -103,7 +102,7 @@ export const useUserStore = defineStore('user', () => {
     error.value = '';
 
     try {
-      const response = await fetch(`${API_BASE_URL}/utenti/${userId}/ban`, {
+      const response = await fetch(`${API_CONFIG.BASE_URL}/utenti/${userId}/ban`, {
         method: 'PATCH',
         credentials: 'include'
       });
@@ -130,7 +129,7 @@ export const useUserStore = defineStore('user', () => {
     error.value = '';
 
     try {
-      const response = await fetch(`${API_BASE_URL}/utenti/${userId}/unban`, {
+      const response = await fetch(`${API_CONFIG.BASE_URL}/utenti/${userId}/unban`, {
         method: 'PATCH',
         credentials: 'include'
       });
@@ -157,7 +156,7 @@ export const useUserStore = defineStore('user', () => {
     error.value = '';
 
     try {
-      const response = await fetch(`${API_BASE_URL}/utenti/${userId}/ruolo`, {
+      const response = await fetch(`${API_CONFIG.BASE_URL}/utenti/${userId}/ruolo`, {
         method: 'PATCH',
         credentials: 'include',
         body: JSON.stringify({ ruolo: newRole })
@@ -183,7 +182,7 @@ export const useUserStore = defineStore('user', () => {
     error.value = '';
 
     try {
-      const response = await fetch(`${API_BASE_URL}/utenti/${userId}`, {
+      const response = await fetch(`${API_CONFIG.BASE_URL}/utenti/${userId}`, {
         method: 'PUT',
         credentials: 'include',
         body: JSON.stringify({ classe: className })
@@ -216,7 +215,7 @@ export const useUserStore = defineStore('user', () => {
 
       // Update ban status
       const banStatusEndpoint = user.bannato === 1 ? 'ban' : 'unban';
-      const response = await fetch(`${API_BASE_URL}/utenti/${user.idUtente}/${banStatusEndpoint}`, {
+      const response = await fetch(`${API_CONFIG.BASE_URL}/utenti/${user.idUtente}/${banStatusEndpoint}`, {
         method: 'PATCH',
         credentials: 'include'
       });

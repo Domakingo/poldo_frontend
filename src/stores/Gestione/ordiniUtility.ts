@@ -8,7 +8,7 @@ export async function handleRequest<T>(
   errorMsg: string,
   init?: RequestInit
 ): Promise<T> {
-  const url = `${API_CONFIG.baseURL}${endpoint.startsWith('/') ? endpoint : '/' + endpoint}`;
+  const url = `${API_CONFIG.BASE_URL}${endpoint.startsWith('/') ? endpoint : '/' + endpoint}`;
   try {
     const response = await fetch(url, { credentials: 'include', ...init, mode: 'cors' });
 

@@ -1,5 +1,6 @@
 import { defineStore } from 'pinia'
 import { ref, computed } from 'vue'
+import { API_CONFIG } from '@/utils/api'
 
 export interface Product {
   id: number
@@ -12,12 +13,6 @@ export interface Product {
   disponibility: number
   tags: string[]
   isActive: boolean
-}
-
-const API_CONFIG = {
-  BASE_URL: 'http://figliolo.it:5006/v1',
-  TOKEN: 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZEdlc3Rpb25lIjoxLCJydW9sbyI6Imdlc3RvcmUiLCJpZCI6MTksImlhdCI6MTc0NDMwNzg0MiwiZXhwIjoxNzc1ODY1NDQyfQ.HMNTe1h81A80p-BawzVj44zSBGBVMYZRdp_vDxE2j9k',
-  DEFAULT_IMAGE: 'http://figliolo.it:5006/v1/prodotti/image/-1'
 }
 
 async function handleRequest<T>(

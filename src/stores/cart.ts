@@ -1,6 +1,7 @@
 import { defineStore } from 'pinia'
 import { ref, computed } from 'vue'
 import { useTurnoStore } from './turno'
+import { API_CONFIG } from '@/utils/api'
 
 
 export interface CartItem {
@@ -25,7 +26,7 @@ export const useCartStore = defineStore(
         const currentTurno = turnoStore.turnoSelezionato
 
         try {
-          const response = await fetch(`http://figliolo.it:5006/v1/ordini/me?nTurno=${currentTurno}`, {
+          const response = await fetch(`${API_CONFIG.BASE_URL}/ordini/me?nTurno=${currentTurno}`, {
             method: 'GET',
             credentials: 'include'
           })
@@ -104,7 +105,7 @@ export const useCartStore = defineStore(
         }
 
         try {
-          const response = await fetch('http://figliolo.it:5006/v1/ordini', {
+          const response = await fetch(`${API_CONFIG.BASE_URL}/ordini`, {
             method: 'POST',
             credentials: 'include',
             body: JSON.stringify(body),

@@ -10,6 +10,7 @@ import ModificaView from '../views/Gestione/ProdottiView.vue'
 import OrdinazioniView from '@/views/Gestione/OrdinazioniView.vue'
 import OrdinazioniProf from '@/views/Gestione/OrdinazioniProf.vue'
 import UtentiView from '@/views/UtentiView.vue'
+import GestioniView from '@/views/GestioniView.vue'
 import QRView from '../views/QrView.vue'
 import LoginView from '@/views/LoginView.vue'
 import { useAuthStore } from '@/stores/auth'
@@ -78,11 +79,16 @@ const router = createRouter({
       path: '/reports',
       name: 'reports',
       component: ReportsView
-    },
-    {
+    },    {
       path: '/utenti',
       name: 'utenti',
       component: UtentiView,
+      meta: { requiresAdmin: true }
+    },
+    {
+      path: '/gestioni',
+      name: 'gestioni',
+      component: GestioniView,
       meta: { requiresAdmin: true }
     }
   ],

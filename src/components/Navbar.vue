@@ -19,7 +19,8 @@ const pageTitles = {
     carrello: 'Carrello',
     ordinazioni: 'Ordinazioni',
     ordinazioniProf: 'Ordinazioni Professori',
-    utenti: 'Utenti'
+    utenti: 'Utenti',
+    gestioni: 'Gestioni'
 } as const
 
 const navRoutes = [
@@ -27,6 +28,7 @@ const navRoutes = [
     { name: 'Prodotti', path: '/prodotti', requiresTurno: true },
     { name: 'Carrello', path: '/carrello', requiresTurno: true },
     { name: 'Utenti', path: '/utenti', requiresTurno: false },
+    { name: 'Gestioni', path: '/gestioni', requiresTurno: false },
     { name: 'Ordinazioni', path: '/gestione/ordinazioni', requiresTurno: false },
     { name: 'Ordinazioni Professori', path: '/gestione/ordinazioni/prof', requiresTurno: false }
 ] as const

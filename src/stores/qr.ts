@@ -1,6 +1,7 @@
 import { defineStore } from 'pinia'
 import { ref, computed } from 'vue'
 import { useTurnoStore } from './turno'
+import { API_CONFIG } from '@/utils/api'
 
 export interface QR {
     token: string
@@ -17,7 +18,7 @@ export const useQRStore = defineStore('qr', () => {
 
     try {
       const response = await fetch(
-        `http://figliolo.it:5006/v1/qr/me?nTurno=${currentTurno.value}`,
+        `${API_CONFIG.BASE_URL}/qr/me?nTurno=${currentTurno.value}`,
         { method: 'GET', credentials: 'include' },
       )
 
