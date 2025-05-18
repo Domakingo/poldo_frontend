@@ -62,8 +62,6 @@ export const handleRequest = async <T>(
 ): Promise<T> => {
   const url: string = `${API_CONFIG.BASE_URL}${endpoint.startsWith('/') ? endpoint : '/' + endpoint}`;
   
-  console.log('Fetching from URL:', url);
-  
   try {
     const response: Response = await fetch(url, { credentials: 'include', ...init, mode: 'cors' });
     

@@ -236,7 +236,6 @@ export const useGestioneStore = defineStore('gestione', () => {
     error.value = '';
     
     try {
-      console.log(`Fetching users for gestione ${gestioneId}`);
       const response = await fetch(`${API_CONFIG.BASE_URL}/gestioni/${gestioneId}/utenti`, {
         method: 'GET',
         credentials: 'include',
@@ -244,8 +243,6 @@ export const useGestioneStore = defineStore('gestione', () => {
           'Accept': 'application/json'
         }
       });
-      
-      console.log('Response status:', response.status);
       
       // Handle errors before trying to parse the response as JSON
       if (!response.ok) {
@@ -262,7 +259,6 @@ export const useGestioneStore = defineStore('gestione', () => {
       }
       
       const users = await response.json();
-      console.log(`Fetched ${users.length} users for gestione ${gestioneId}`);
       gestioneUsers.value = users;
       return users;
     } catch (err: any) {

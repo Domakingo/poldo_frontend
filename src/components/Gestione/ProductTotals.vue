@@ -106,12 +106,13 @@ const uniqueProducts = computed<Product[]>(() => {
       if (product.idProdotto === undefined) {
         return
       }
-        if (!products.has(product.idProdotto)) {        products.set(product.idProdotto, {
-          idProdotto: product.idProdotto,
-          nome: product.nome,
-          quantita: product.quantita || 0, // Add the quantita property
-          prezzo: product.prezzo,
-          preparato: product.preparato || false
+        if (!products.has(product.idProdotto)) {        
+          products.set(product.idProdotto, {
+            idProdotto: product.idProdotto,
+            nome: product.nome,
+            quantita: product.quantita || 0, // Add the quantita property
+            prezzo: product.prezzo,
+            preparato: product.preparato || false
         })
       }
     })
@@ -253,14 +254,16 @@ const fetchProductsData = async (turno: number = props.currentTurno) => {
       const productMap = new Map();
       
       data.forEach(order => {
-        if (order && Array.isArray(order.prodotti)) {          order.prodotti.forEach((product: { 
+        if (order && Array.isArray(order.prodotti)) {          
+          order.prodotti.forEach((product: { 
             idProdotto: number; 
             nome?: string; 
             prezzo?: number;
             quantita?: number;
             preparato?: boolean 
           }) => {
-            if (product && product.idProdotto) {const existingProduct = productMap.get(product.idProdotto) as Product & {
+            if (product && product.idProdotto) {
+              const existingProduct = productMap.get(product.idProdotto) as Product & {
                 quantitaOrdinata: number;
                 quantitaPreparata: number;
                 tuttiPreparati: boolean;
@@ -274,10 +277,11 @@ const fetchProductsData = async (turno: number = props.currentTurno) => {
                 existingProduct.quantitaOrdinata += product.quantita || 0;
                 existingProduct.quantitaPreparata += isProductPrepared ? (product.quantita || 0) : 0;
                 existingProduct.tuttiPreparati = (existingProduct.quantitaOrdinata === existingProduct.quantitaPreparata);
-              } else {                // Create new product entry
+              } else {                
+                // Create new product entry
                 productMap.set(product.idProdotto, {
                   idProdotto: product.idProdotto,
-                  nome: product.nome || 'Prodotto senza nome',
+                  nome: product.nome,
                   quantita: product.quantita || 0, // Added for Product interface compatibility
                   prezzo: product.prezzo || 0,
                   quantitaOrdinata: product.quantita || 0,
@@ -298,14 +302,41 @@ const fetchProductsData = async (turno: number = props.currentTurno) => {
     // Fall back to client-side calculation if API fails
     productsData.value = [];
   }
-};// Function to mark a product as prepared
+};
+// Function to mark a product as prepared
 const markProductPrepared = async (productId: number) => {
   try {
-    if (!productId || !props.currentTurno) {
+    if (!productId || props.currentTurno === undefined || props.currentTurno === null) {
       alert('Errore: ID prodotto o turno mancante');
       return;
     }
     
+    // Update local API data optimistically for immediate UI feedback
+    if (productsData.value && productsData.value.length > 0) {
+      const productToUpdate = productsData.value.find(p => p.idProdotto === productId);
+      if (productToUpdate) {
+        productToUpdate.quantitaPreparata = productToUpdate.quantitaOrdinata;
+        productToUpdate.tuttiPreparati = true;
+      }
+    }
+    
+    // Update local class orders data optimistically
+    if (Array.isArray(props.classOrders)) {
+      props.classOrders.forEach(order => {
+        if (order && Array.isArray(order.prodotti)) {
+          order.prodotti.forEach(product => {
+            if (product.idProdotto === productId) {
+              product.preparato = true;
+            }
+          });
+        }
+      });
+    }
+    
+    // Emit the event before awaiting the API call
+    emit('product-marked-as-prepared', { productId, turno: props.currentTurno });
+    
+    // Call the API to persist the change
     const success = await ordiniStore.markProductAsPrepared(productId, props.currentTurno);
     
     if (success) {
@@ -322,7 +353,6 @@ const markProductPrepared = async (productId: number) => {
 
 // Call on mount and when products change
 onMounted(() => {
-  // Fetch products data for the selected turno on component mount
   fetchProductsData(props.currentTurno);
 });
 

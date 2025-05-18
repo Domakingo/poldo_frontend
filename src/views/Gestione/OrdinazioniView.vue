@@ -27,9 +27,9 @@ const availableTurni = computed(() => turnoStore.turni)
 // Formattazione data
 const selectedDate = ref(ordiniStore.selectedDate)
 
-// Proprietà calcolata per la visualizzazione della timeline
+// Proprietà calcolata per la visualizzazione della timeline - Modificato per mostrare sempre la timeline
 const showProfessorTimeline = computed(() => {
-  return ordiniStore.profOrders.length > 0;
+  return true; // Always show the timeline regardless of whether there are orders
 })
 
 // Recupera gli ordini dei professori
@@ -39,7 +39,8 @@ const fetchProfOrders = async () => {
   
   try {
     await ordiniStore.fetchProfOrders()
-    profOrders.value = ordiniStore.profOrders
+    // Create a new array reference to ensure Vue's reactivity system detects the change
+    profOrders.value = [...ordiniStore.profOrders]
   } catch (err) {
     error.value = ordiniStore.error || 'Errore nel caricamento degli ordini dei professori.'
   } finally {
@@ -54,7 +55,8 @@ const fetchClassOrders = async () => {
   
   try {
     await ordiniStore.fetchClassOrders(selectedTurno.value)
-    classOrders.value = ordiniStore.classOrders
+    // Create a new array reference to ensure Vue's reactivity system detects the change
+    classOrders.value = [...ordiniStore.classOrders]
   } catch (err) {
     error.value = ordiniStore.error || 'Errore nel caricamento degli ordini per classe.'
   } finally {
@@ -92,10 +94,13 @@ const handleTurnoChange = async (turno: number) => {
   selectedTurno.value = turno;
   turnoStore.selectTurno(turno);
   
+  // Always fetch professor orders for timeline regardless of selected turno
+  await fetchProfOrders();
+  
   if (turno === 2) {
-    // For turno 2 (professors), we use profOrders
-    await fetchProfOrders();
-    classOrders.value = ordiniStore.profOrders;
+    // For turno 2 (professors), we use profOrders in the order list
+    // Create a new array reference to ensure Vue's reactivity system detects the change
+    classOrders.value = [...ordiniStore.profOrders];
   } else {
     // For other turni (students), fetch class orders
     await fetchClassOrders();
@@ -103,13 +108,49 @@ const handleTurnoChange = async (turno: number) => {
 }
 
 // Handler for when an order is marked as prepared
-const handleOrderMarkedAsPrepared = async ({ classe, classeId, turno }: { classe: string, classeId: number, turno: number }) => {
-  // Refresh the orders after an order is marked as prepared
-  await ordiniStore.markOrderAsPrepared(classeId, turno)
+const handleOrderMarkedAsPrepared = async ({ classe, turno }: { classe: string, turno: number }) => {
+  // Update local state immediately to show changes in UI without waiting for API
+  // Update order in profOrders for immediate timeline feedback
+  if (turno === 2) {
+    profOrders.value = profOrders.value.map(order => {
+      if (order.classe === classe) {
+        // Mark the order and all its products as prepared
+        return {
+          ...order,
+          preparato: true,
+          prodotti: order.prodotti.map(product => ({
+            ...product, 
+            preparato: true
+          }))
+        };
+      }
+      return order;
+    });
+  }
+
+  // Update order in the currently displayed classOrders
+  classOrders.value = classOrders.value.map(order => {
+    if (order.classe === classe) {
+      // Mark the order and all its products as prepared
+      return {
+        ...order,
+        preparato: true,
+        prodotti: Array.isArray(order.prodotti) ? order.prodotti.map(product => ({
+          ...product,
+          preparato: true
+        })) : []
+      };
+    }
+    return order;
+  });
   
+  // Call the store method to persist changes to API
+  await ordiniStore.markOrderAsPrepared(classe, turno)
+  
+  // Refresh the orders to ensure data consistency
   if (turno === 2) {
     await fetchProfOrders()
-    classOrders.value = ordiniStore.profOrders
+    classOrders.value = [...ordiniStore.profOrders] // Create a new array reference to ensure reactivity
   } else {
     await fetchClassOrders()
   }
@@ -117,12 +158,38 @@ const handleOrderMarkedAsPrepared = async ({ classe, classeId, turno }: { classe
 
 // Handler for when a product is marked as prepared
 const handleProductMarkedAsPrepared = async ({ productId, turno }: { productId: number, turno: number }) => {
-  // Refresh the orders after a product is marked as prepared
+  // Update local state immediately to show changes in UI without waiting for API
+  // Update products in profOrders for immediate timeline feedback
+  profOrders.value.forEach(order => {
+    if (order && Array.isArray(order.prodotti)) {
+      order.prodotti.forEach(product => {
+        if (product.idProdotto === productId) {
+          product.preparato = true;
+        }
+      });
+    }
+  });
+
+  // Update products in the currently displayed classOrders
+  if (Array.isArray(classOrders.value)) {
+    classOrders.value.forEach(order => {
+      if (order && Array.isArray(order.prodotti)) {
+        order.prodotti.forEach(product => {
+          if (product.idProdotto === productId) {
+            product.preparato = true;
+          }
+        });
+      }
+    });
+  }
+  
+  // Call the store method to persist changes to API (which also includes local state updates)
   await ordiniStore.markProductAsPrepared(productId, turno)
   
+  // Refresh the orders to ensure data consistency
   if (turno === 2) {
     await fetchProfOrders()
-    classOrders.value = ordiniStore.profOrders
+    classOrders.value = [...ordiniStore.profOrders] // Create a new array reference to ensure reactivity
   } else {
     await fetchClassOrders()
   }
@@ -150,14 +217,16 @@ onMounted(async () => {
   else if (availableTurni.value.length > 0) {
     selectedTurno.value = availableTurni.value[0].n
   }
-
   turnoStore.selectTurno(selectedTurno.value)
 
+  // Always fetch the professor orders for the timeline regardless of selected turno
+  await fetchProfOrders()
+  
   // Load the appropriate orders based on the selected turn
   if (selectedTurno.value === 2) {
-    // For professor turn, load professor orders
-    await fetchProfOrders()
-    classOrders.value = ordiniStore.profOrders
+    // For professor turn, also use profOrders for the order list
+    // Create a new array reference to ensure reactivity
+    classOrders.value = [...ordiniStore.profOrders]
   } else {
     // For student turns, load class orders
     await fetchClassOrders()
@@ -177,11 +246,8 @@ onMounted(async () => {
       <button @click="turnoStore.fetchTurni().then(() => { fetchClassOrders(); fetchProfOrders(); })">Riprova</button>
     </div>
 
-    <div v-else>
-
-      <!-- Timeline per gli ordini dei professori -->
+    <div v-else>      <!-- Timeline per gli ordini dei professori - Always visible -->
       <ProfessorTimeline
-        v-if="showProfessorTimeline"
         :profOrders="profOrders"
         :turnoTimes="selectedTurnoTimes"
         @reload="fetchProfOrders"

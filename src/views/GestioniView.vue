@@ -291,7 +291,6 @@ onMounted(async () => {
   try {
     const authStore = useAuthStore();
     await authStore.checkAuth();
-    console.log('Authentication status:', authStore.user ? 'Authenticated' : 'Not authenticated');
     
     if (!authStore.user) {
       showAlert('Utente non autenticato. Effettuare il login.', 'error');
@@ -363,11 +362,8 @@ const openUsersModal = async (gestione: Gestione) => {
   isLoading.value = true;
   
   try {
-    console.log(`Opening users modal for gestione ${gestione.idGestione}: ${gestione.nome}`);
-    
     // Fetch all users for the dropdown
     await userStore.fetchUsers();
-    console.log(`Fetched ${userStore.users.length} total users`);
     
     try {
       // Use the new endpoint to fetch users associated with this gestione
@@ -375,7 +371,6 @@ const openUsersModal = async (gestione: Gestione) => {
       
       // Convert GestioneUser to User type by merging with existing users from userStore
       const gestioneUserIds = gestioneStore.gestioneUsers.map(u => u.idUtente);
-      console.log(`Found ${gestioneUserIds.length} users associated with this gestione`);
       
       // Filter users from userStore that match IDs from gestione users
       gestioneUsers.value = userStore.users.filter(user => 
@@ -396,8 +391,6 @@ const openUsersModal = async (gestione: Gestione) => {
         id: user.idUtente,
         name: `${user.mail} (${user.ruolo})`
       }));
-      
-    console.log(`Available users for adding: ${availableUsers.value.length}`);
   } catch (error: any) {
     showAlert(`Errore nel caricamento degli utenti: ${error.message}`, 'error');
   } finally {

@@ -11,6 +11,7 @@ export interface Product {
   nome: string
   quantita: number
   prezzo: number
+  preparato?: boolean
 }
 
 export interface Order {
@@ -157,10 +158,41 @@ export const useOrdiniStore = defineStore('ordini', () => {
       loading.value = false
     }
   }
-    // Funzione per segnare un ordine come preparato
+  // Funzione per segnare un ordine come preparato
   async function markOrderAsPrepared(classeId: number | string, turno: number) {
-    try {
-      console.log(`Marking order for class ID ${classeId} and turno ${turno} as prepared...`);
+    try {      
+      // Update local state immediately for better UI response
+      if (turno === 2) {
+        // Update professor orders
+        profOrders.value = profOrders.value.map(order => {
+          if (order.classe === classeId || String(order.classe) === String(classeId)) {
+            return {
+              ...order,
+              preparato: true,
+              prodotti: order.prodotti.map(product => ({
+                ...product,
+                preparato: true
+              }))
+            };
+          }
+          return order;
+        });
+      } else {
+        // Update class orders
+        classOrders.value = classOrders.value.map(order => {
+          if (order.classeId === classeId || String(order.classeId) === String(classeId)) {
+            return {
+              ...order,
+              preparato: true,
+              prodotti: order.prodotti?.map(product => ({
+                ...product,
+                preparato: true
+              })) || []
+            };
+          }
+          return order;
+        });
+      }
       
       const response = await handleRequest<any>(
         `ordini/classi/${classeId}/turno/${turno}/prepara`,
@@ -168,12 +200,9 @@ export const useOrdiniStore = defineStore('ordini', () => {
         { method: 'PUT' }
       )
       
-      console.log(`API response for markOrderAsPrepared:`, response);      // Aggiorna gli ordini in base al turno
       if (turno === 2) {
-        console.log(`Refreshing professor orders after marking class ID ${classeId} order as prepared`);
         await fetchProfOrders();
       } else {
-        console.log(`Refreshing class orders for turno ${turno} after marking class ID ${classeId} order as prepared`);
         await fetchClassOrders(turno);
       }
 
@@ -186,7 +215,7 @@ export const useOrdiniStore = defineStore('ordini', () => {
 
 async function markProductAsPrepared(productId: number, turno: number) {
   try {
-    // Make sure productId and turno are valid
+    // Improved validation that correctly handles turno=0
     if (productId === undefined || productId === null) {
       throw new Error('ID prodotto è obbligatorio');
     }
@@ -207,8 +236,30 @@ async function markProductAsPrepared(productId: number, turno: number) {
       // Silently continue, just log the error
     }
     
-    console.log(`Marking product ID ${productId} as prepared for turno ${turno}`);
+    // Update the local state for immediate UI feedback
+    // Update classOrders first
+    classOrders.value.forEach(order => {
+      if (order && Array.isArray(order.prodotti)) {
+        order.prodotti.forEach(product => {
+          if (product.idProdotto === productId) {
+            product.preparato = true;
+          }
+        });
+      }
+    });
     
+    // Update profOrders
+    profOrders.value.forEach(order => {
+      if (order && Array.isArray(order.prodotti)) {
+        order.prodotti.forEach(product => {
+          if (product.idProdotto === productId) {
+            product.preparato = true;
+          }
+        });
+      }
+    });
+    
+    // Call the API
     await handleRequest<any>(
       `ordini/prodotti/${productId}/prepara?nTurno=${turno}`,
       'Errore nel marcare il prodotto come preparato',
@@ -219,9 +270,8 @@ async function markProductAsPrepared(productId: number, turno: number) {
     )
 
     // Aggiorna gli ordini in base al turno
-    if (turno === 2) {
-      await fetchProfOrders();
-    } else {
+    await fetchProfOrders();
+    if (turno !== 2) {
       await fetchClassOrders(turno);
     }
 
@@ -231,6 +281,7 @@ async function markProductAsPrepared(productId: number, turno: number) {
     return false
   }
 }
+
   // Funzione per modificare la data selezionata
   function setSelectedDate(date: string) {
     selectedDate.value = date

@@ -41,7 +41,6 @@ export const useTurnoStore = defineStore('turno', () => {
         fineRitiro: item.oraFineRitiro,
         nome: item.nome,
       }))
-      console.log('Turni:', turni.value)
     } catch (err) {
       error.value = (err as Error).message
     } finally {
@@ -51,14 +50,12 @@ export const useTurnoStore = defineStore('turno', () => {
 
   const selectTurno = (n: number) => {
     const turno = turni.value.find(t => t.n === n)
-    console.log('Turno selezionato:', turno)
     if (!turno) {
         console.error('Turno non trovato')
         error.value = 'Turno non trovato'
         return
     }
     selectedTurno.value = n
-    console.log('Turno selezionato2:', selectedTurno.value)
   }
 
   return {

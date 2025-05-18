@@ -91,7 +91,6 @@ const groupedByMacro = computed(() => {
 
 async function getCart() {
     const cart = await cartStore.getOrdineByTurno()
-    console.log('cart', cart)
     haveCart.value = cart === true
 }
 
