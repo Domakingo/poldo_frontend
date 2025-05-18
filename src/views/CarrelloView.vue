@@ -60,7 +60,7 @@ const totalPrice = computed(() => {
     return items.value.reduce((total, item) => {
         const product = allProducts.value.find(p => p.id === item.id)
         if(!product) return total
-        return total + (product.price * item.quantity)
+        return total + (product.price * item.selectedQuantity)
     }, 0)
 })
 
@@ -219,7 +219,7 @@ getCart();
                         <div v-for="item in itemsDetails" :key="item.id" class="receipt-item">
                             <img :src="item.imageSrc" alt="Product Image" class="product-image" />
                             <span class="product-info">
-                                x{{ item.quantity }}
+                                x{{ item.selectedQuantity }}
                                 {{
                                 item.title
                                 }}
@@ -227,7 +227,7 @@ getCart();
                             <div class="quantity-price">
                                 <QuantityControl :productId="item.id" :delete="false" :disabled="haveCart" />
                                 <span class="item-total">
-                                    €{{ item.price ? (item.quantity * item.price).toFixed(2) : '0.00' }}
+                                    €{{ item.price ? (item.selectedQuantity * item.price).toFixed(2) : '0.00' }}
                                 </span>
                             </div>
                         </div>
@@ -298,7 +298,7 @@ getCart();
                             <img src="https://lh3.googleusercontent.com/a/ACg8ocLPv09a9-uNbEG-ZfRm5bWQUlyLOpBaKxHz88de_c6vB8RvQ_Plrg=s96-c"
                                 alt="Product Image" class="product-image" />
                             <span class="product-info">
-                                x{{ item.quantita }}
+                                x{{ item.selectedQuantity }}
                                 {{
                                 item.nome
                                 }}
@@ -307,7 +307,7 @@ getCart();
                                 <!-- <QuantityControl :productId="item.id" :delete="false" /> -->
                                 <span class="item-total">
                                     €{{
-                                    (item.quantita * item.prezzo).toFixed(2)
+                                    (item.selectedQuantity * item.prezzo).toFixed(2)
                                     }}
                                 </span>
                             </div>

@@ -6,7 +6,7 @@ import { API_CONFIG } from '@/utils/api'
 
 export interface CartItem {
   id: number
-  quantity: number
+  selectedQuantity: number
 }
 
 interface CartByTurno {
@@ -45,7 +45,7 @@ export const useCartStore = defineStore(
 
           itemsByTurno.value[currentTurno] = ordine.prodotti.map((item: any) => ({
             id: item.idProdotto,
-            quantity: item.quantita,
+            selectedQuantity: item.quantita,
           }))
           return true
         } catch (error) {
@@ -61,9 +61,9 @@ export const useCartStore = defineStore(
       const existingItem = cart.find((item) => item.id === productId)
 
       if (existingItem) {
-        existingItem.quantity += quantity
+        existingItem.selectedQuantity += quantity
       } else {
-        cart.push({ id: productId, quantity: quantity })
+        cart.push({ id: productId, selectedQuantity: quantity })
       }
     }
 
@@ -96,7 +96,7 @@ export const useCartStore = defineStore(
 
         const cartData = cart.map((item) => ({
           idProdotto: item.id,
-          quantita: item.quantity,
+          quantita: item.selectedQuantity,
         }))
 
         const body = {
@@ -107,8 +107,11 @@ export const useCartStore = defineStore(
         try {
           const response = await fetch(`${API_CONFIG.BASE_URL}/ordini`, {
             method: 'POST',
-            credentials: 'include',
+            headers: {
+              'Content-Type': 'application/json',
+            },
             body: JSON.stringify(body),
+            credentials: 'include',
           })
 
           const data = await response.json()

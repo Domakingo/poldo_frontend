@@ -44,7 +44,7 @@ const router = createRouter({
         path: '/qr',
         name: 'QRCode',
         component: QRView,
-        meta: { requiresTurno: true, autenticated: true, role: ['admin','prof','segreteria','paninaro']  }
+        
     },
     {
       path: '/gestione/addProdotto',
