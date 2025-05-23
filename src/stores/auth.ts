@@ -17,50 +17,30 @@ export const useAuthStore = defineStore('auth', () => {
   const checkAuth = async () => {
   try {
     loading.value = true
-    // First try the /me endpoint which should include the user ID
-    const response = await fetch(`${API_CONFIG.BASE_URL}/auth/me`, {
+
+    const checkResponse = await fetch(`${API_CONFIG.BASE_URL}/auth/check`, {
       method: 'GET',
       credentials: 'include'
-    })
-
-    // If /me fails, fall back to the /check endpoint
-    if (!response.ok) {
-      const checkResponse = await fetch(`${API_CONFIG.BASE_URL}/auth/check`, {
-        method: 'GET',
-        credentials: 'include'
-      });
-      
-      if (!checkResponse.ok) {
-        console.error('User not authenticated');
-        logout();
-        return false;
-      }
-      
-      const checkData = await checkResponse.json();
-      loading.value = false;
-      isAuthenticated.value = true;
-      
-      const userData: User = {
-        nome: checkData.nome,
-        foto: checkData.foto_url,
-        ruolo: checkData.ruolo,
-      };
-      user.value = userData;
-      return true;
+    });
+    
+    if (!checkResponse.ok) {
+      console.error('User not authenticated');
+      logout();
+      return false;
     }
-
-    const data = await response.json()
-    loading.value = false
-    isAuthenticated.value = true
-
+    
+    const checkData = await checkResponse.json();
+    loading.value = false;
+    isAuthenticated.value = true;
+    
     const userData: User = {
-      id: data.id,
-      nome: data.nome,
-      foto: data.foto_url,
-      ruolo: data.ruolo,
-    }
-    user.value = userData
-    return true
+      nome: checkData.nome,
+      foto: checkData.foto_url,
+      ruolo: checkData.ruolo,
+    };
+    user.value = userData;
+    return true;
+    
   } catch (error) {
     logout()
     return false
