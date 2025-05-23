@@ -12,7 +12,8 @@ export interface Product {
   quantity: number
   disponibility: number
   tags: string[]
-  isActive: boolean
+  isActive: boolean,
+  bevanda: boolean
 }
 
 async function handleRequest<T>(
@@ -43,7 +44,10 @@ async function handleRequest<T>(
 
 export const useProductsStore = defineStore('products', () => {
   const products = ref<Product[]>([])
-  const defaultImageBlobUrl = ref<string>('')
+  const defaultImageBlobUrl = {
+    cibo: "/cibo.svg",
+    bevanda: "/bevanda.svg"
+  }
 
   const allIngredients = computed(() => {
     const ingredients = new Set<string>()
@@ -61,27 +65,10 @@ export const useProductsStore = defineStore('products', () => {
     return Array.from(tags)
   })
 
-  async function fetchDefaultImage() {
-    try {
-      const response = await fetch(API_CONFIG.DEFAULT_IMAGE, {
-        credentials: 'include'
-      })
-
-      if (!response.ok) {
-        throw new Error(`Failed to fetch default image: ${response.status}`)
-      }
-
-      const blob = await response.blob()
-      defaultImageBlobUrl.value = URL.createObjectURL(blob)
-    } catch (error) {
-      console.error('Error fetching default image:', error)
-      defaultImageBlobUrl.value = API_CONFIG.DEFAULT_IMAGE
-    }
-  }
 
    const initializeProducts = async () => {
     try {
-      await fetchDefaultImage()
+
 
       const raw = await handleRequest<any[]>(
         'prodotti',
@@ -97,12 +84,13 @@ export const useProductsStore = defineStore('products', () => {
           title: item.nome,
           description: item.descrizione,
           ingredients: item.ingredienti,
-          imageSrc: imageExists ? productImageUrl : defaultImageBlobUrl.value,
+          imageSrc: imageExists ? productImageUrl : item.bevanda === 1 ? defaultImageBlobUrl.bevanda : defaultImageBlobUrl.cibo,
           price: parseFloat(item.prezzo),
           quantity: item.quantita,
           disponibility: item.disponibilita,
           tags: item.tags,
-          isActive: item.attivo === 1
+          isActive: item.attivo === 1,
+          bevanda: item.bevanda === 1
         }
       }))
     } catch (err) {
