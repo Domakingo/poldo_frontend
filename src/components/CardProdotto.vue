@@ -2,15 +2,18 @@
 import { ref, onMounted } from 'vue'
 import { useFavoritesStore } from '@/stores/favorites'
 import QuantityControl from './ControlloQuantitaProdotto.vue'
-import { useProductsStore } from '@/stores/products'
+import { useGestioneProductsStore } from '@/stores/Gestione/products'
 
 const props = defineProps<{
   productId: number
 }>()
 
+const productData = useGestioneProductsStore().getProductById(props.productId)
+
 const product = {
-  ...useProductsStore().getProductById(props.productId),
+  ...productData,
   disableFlip: false,
+  disponibility: productData?.disponibility ?? 0,
 }
 
 const favoritesStore = useFavoritesStore()

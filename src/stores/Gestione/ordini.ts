@@ -12,6 +12,7 @@ export interface Product {
   quantita: number
   prezzo: number
   preparato?: boolean
+  proprietario?: number // This should be the gestione ID, not the user ID
 }
 
 export interface Order {
@@ -233,8 +234,11 @@ async function markProductAsPrepared(productId: number, turno: number) {
         await authStore.checkAuth();
       }
     } catch (userError) {
+      console.error('Error checking authentication:', userError);
       // Silently continue, just log the error
     }
+      // No client-side validation, we'll rely on the backend to validate permissions
+    // The backend will check if the user is authorized to modify this product
     
     // Update the local state for immediate UI feedback
     // Update classOrders first

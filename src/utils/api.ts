@@ -3,7 +3,7 @@
 
 // API Base URL configuration
 export const API_CONFIG = {
-  BASE_URL: 'http://figliolo.it:5006/v1',
+  BASE_URL: 'http://localhost:5006/v1',
 };
 
 // Helper function for creating proper headers with auth token

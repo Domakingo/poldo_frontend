@@ -10,8 +10,10 @@ export interface Product {
   imageSrc: string
   price: number
   quantity: number
+  disponibility: number
   tags: string[]
   isActive: boolean
+  bevanda: boolean
 }
 
 
@@ -44,33 +46,18 @@ export const useGestioneProductsStore = defineStore('gestioneProducts', () => {
   const initializeProducts = async () => {
     try {
       const response = await fetch(
-        `${API_CONFIG.BASE_URL}/prodotti/all`,
+        `${API_CONFIG.BASE_URL}/ordini/prodotti`,
         { credentials: 'include' }
       );
       const raw = await response.json();
 
       products.value = await Promise.all(
         raw.map(async (item) => {
-          const imageEndpoint = `${API_CONFIG.BASE_URL}/prodotti/image/${item.idProdotto}`;
-
-          // 1. Provo a scaricare l’immagine con il JWT
-          let finalImageSrc = API_CONFIG.DEFAULT_IMAGE;
-          try {
-            const imgRes = await fetch(imageEndpoint, { credentials: 'include' });
-            if (imgRes.ok) {
-              const blob = await imgRes.blob();
-              finalImageSrc = URL.createObjectURL(blob);
-            }
-          } catch {
-            // se il fetch fallisce, rimane DEFAULT_IMAGE
-          }
-
           return {
             id: item.idProdotto,
             title: item.nome,
             description: item.descrizione,
             ingredients: item.ingredienti,
-            imageSrc: finalImageSrc,
             price: parseFloat(item.prezzo),
             quantity: item.quantita,
             tags: item.tags,
@@ -78,107 +65,19 @@ export const useGestioneProductsStore = defineStore('gestioneProducts', () => {
           };
         })
       );
+
     } catch (err) {
       console.error(err);
       throw err;
     }
   };
 
-  const addProduct = async (newProduct: Omit<Product, 'id'>) => {
-    try {
-      const formData = new FormData()
-      formData.append('nome', newProduct.title)
-      formData.append('descrizione', newProduct.description)
-      formData.append('ingredienti', JSON.stringify(newProduct.ingredients))
-      formData.append('tags', JSON.stringify(newProduct.tags))
-      formData.append('prezzo', newProduct.price.toFixed(2))
-      formData.append('quantita', newProduct.quantity.toString())
-      formData.append('attivo', newProduct.isActive ? '1' : '0')
-
-      // Se c'è un'immagine da caricare
-      if (newProduct.imageSrc && newProduct.imageSrc !== API_CONFIG.DEFAULT_IMAGE) {
-        const response = await fetch(newProduct.imageSrc, {
-          credentials: 'include'
-        });
-        if (!response.ok) {
-          throw new Error(`Impossibile scaricare l'immagine da ${newProduct.imageSrc}`);
-        }
-        const blob = await response.blob();
-        formData.append(
-          'image',
-          blob,
-          `product_${Date.now()}.${blob.type.split('/')[1]}`
-        );
-      }
-
-
-      const data = await fetch(`${API_CONFIG.BASE_URL}/prodotti`, {
-        method: 'POST',
-        credentials: 'include',
-        body: formData
-      }).then(res => res.json())
-
-      products.value.push({
-        ...newProduct,
-        id: data.id,
-        imageSrc: `${API_CONFIG.BASE_URL}/prodotti/image/${data.id}`
-      })
-
-    } catch (error) {
-      console.error('Product creation failed:', error)
-      throw error
-    }
-  }
-
-  const updateProduct = async (id: number, updates: Partial<Product>) => {
-    try {
-      const formData = new FormData()
-
-      if (updates.title !== undefined) formData.append('nome', updates.title)
-      if (updates.description !== undefined) formData.append('descrizione', updates.description)
-      if (updates.price !== undefined) formData.append('prezzo', updates.price.toFixed(2))
-        if (updates.quantity !== undefined) formData.append('quantita', updates.quantity.toString())
-      if (updates.tags !== undefined) formData.append('tags', JSON.stringify(updates.tags))
-      if (updates.ingredients !== undefined) formData.append('ingredienti', JSON.stringify(updates.ingredients))
-      if (updates.isActive !== undefined) formData.append('attivo', updates.isActive ? '1' : '0')
-
-      // Se c'è una nuova immagine
-      if (updates.imageSrc && updates.imageSrc !== `${API_CONFIG.BASE_URL}/prodotti/image/${id}`) {
-        const response = await fetch(updates.imageSrc)
-        const blob = await response.blob()
-        formData.append('image', blob, `product_${id}_${Date.now()}.${blob.type.split('/')[1]}`)
-      }
-
-      await fetch(`${API_CONFIG.BASE_URL}/prodotti/${id}`, {
-        method: 'PATCH',
-        credentials: 'include',
-        body: formData
-      })
-
-      // Aggiorna lo stato locale
-      const index = products.value.findIndex(p => p.id === id)
-      if (index !== -1) {
-        const updatedProduct = {
-          ...products.value[index],
-          ...updates,
-          imageSrc: updates.imageSrc ? updates.imageSrc : products.value[index].imageSrc
-        }
-        products.value[index] = updatedProduct
-      }
-
-    } catch (error) {
-      console.error(`Product update failed for ID ${id}:`, error)
-      throw error
-    }
-  }
 
   return {
     products,
     allIngredients,
     allTags,
     getProductById,
-    initializeProducts,
-    addProduct,
-    updateProduct
+    initializeProducts
   }
 })

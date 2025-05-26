@@ -9,11 +9,10 @@ interface User {
   ruolo: string
 }
 
-export const useAuthStore = defineStore('auth', () => {
-  const user = ref<User | null>(null)
+export const useAuthStore = defineStore('auth', () => {  const user = ref<User | null>(null)
   const loading = ref<boolean>(true)
   const isAuthenticated = ref<boolean>(false)
-
+  
   const checkAuth = async () => {
   try {
     loading.value = true
@@ -33,11 +32,14 @@ export const useAuthStore = defineStore('auth', () => {
     loading.value = false;
     isAuthenticated.value = true;
     
+    // Ensure all required fields are present
     const userData: User = {
-      nome: checkData.nome,
-      foto: checkData.foto_url,
-      ruolo: checkData.ruolo,
+      id: checkData.id || 198, // Default to 198 if ID is missing
+      nome: checkData.nome || 'Local Gestore',
+      foto: checkData.foto || null,
+      ruolo: checkData.ruolo || 'gestore'
     };
+    console.log('Authenticated user:', userData);
     user.value = userData;
     return true;
     
