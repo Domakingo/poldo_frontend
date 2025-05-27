@@ -3,7 +3,7 @@
 
 // API Base URL configuration
 export const API_CONFIG = {
-  BASE_URL: 'http://figliolo.it:5007/v1',
+  BASE_URL: 'http://figliolo.it:5006/v1',
 };
 
 // Helper function to handle API requests
