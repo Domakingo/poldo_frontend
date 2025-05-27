@@ -4,10 +4,17 @@ import { useFavoritesStore } from '@/stores/favorites'
 import QuantityControl from './ControlloQuantitaProdotto.vue'
 import { useProductsStore } from '@/stores/products'
 
-const props = defineProps<{
-  productId: number
-}>()
-
+const props = defineProps({
+    productId: {
+        type: Number,
+        required: true
+    },
+    disabled: {
+        type: Boolean,
+        default: false
+    }
+})
+console.log("AAAA", props.disabled)
 const product = {
   ...useProductsStore().getProductById(props.productId),
   disableFlip: false,
@@ -69,7 +76,7 @@ const flipCard = (event: Event) => {
             Disponibili: {{ product.disponibility }}/{{ product.quantity }}
           </div>
 
-          <QuantityControl v-if="product.disponibility > 0" :product-id="id" />
+          <QuantityControl v-if="product.disponibility > 0" :product-id="id" :disabled="disabled"/>
           <div v-else class="out-of-stock-message">Prodotto esaurito</div>
         </div>
       </div>
@@ -386,9 +393,9 @@ const flipCard = (event: Event) => {
   color: var(--poldo-red);
   font-weight: bold;
   padding: 8px;
-  background: rgba(255, 255, 255, 0.9);
+  /* background: rgba(255, 255, 255, 0.9); */
   border-radius: 12px;
-  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+  /* box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1); */
 }
 
 @media (prefers-color-scheme: dark) {
@@ -402,8 +409,8 @@ const flipCard = (event: Event) => {
     color: var(--poldo-text);
   }
 
-  .out-of-stock-message {
+  /* .out-of-stock-message {
     background: rgba(0, 0, 0, 0.7);
-  }
+  } */
 }
 </style>

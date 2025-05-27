@@ -103,13 +103,16 @@ const groupedByMacro = computed(() => {
 async function getCart() {
     const cart = await cartStore.getOrdineByTurno()
     haveCart.value = cart === true
+    console.log('Carrello:', haveCart.value)
 }
 
 const onResize = () => isMobile.value = window.innerWidth <= 768
 onMounted(() => window.addEventListener('resize', onResize))
 onUnmounted(() => window.removeEventListener('resize', onResize))
+onMounted(() => {
+    getCart()
+})
 
-getCart()
 </script>
 
 <template>
