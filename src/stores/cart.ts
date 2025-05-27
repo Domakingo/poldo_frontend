@@ -85,7 +85,7 @@ export const useCartStore = defineStore(
       return itemsByTurno.value[currentTurno.value]
     }
 
-    async function confirmCart(): Promise<{ ok: boolean; message: string }> {
+    async function confirmCart(orario: string | null): Promise<{ ok: boolean; message: string }> {
         const turno = currentTurno.value
         const cart = itemsByTurno.value[turno]
 
@@ -99,9 +99,13 @@ export const useCartStore = defineStore(
           quantita: item.selectedQuantity,
         }))
 
-        const body = {
-          nTurno: turno,
-          prodotti: cartData,
+        const body: any = {
+            nTurno: turno,
+            prodotti: cartData,
+        }
+
+        if (orario) {
+            body.oraRitiro = orario
         }
 
         try {
@@ -133,6 +137,43 @@ export const useCartStore = defineStore(
       }
 
 
+      async function deleteChar(): Promise<{ ok: boolean; message: string }> {
+        const currentTurno = turnoStore.turnoSelezionato
+        const cart = itemsByTurno.value[currentTurno]
+
+        if (cart.length === 0) {
+          console.error('Carrello vuoto')
+          return { ok: false, message: 'Carrello vuoto' }
+        }
+
+        const body: any = {
+            nTurno: currentTurno,
+        }
+
+        try {
+          const response = await fetch(`${API_CONFIG.BASE_URL}/ordini`, {
+            method: 'DELETE',
+            headers: {
+              'Content-Type': 'application/json',
+            },
+            body: JSON.stringify(body),
+            credentials: 'include',
+          })
+
+          if (!response.ok) {
+            console.error('Errore durante la cancellazione dell’ordine')
+            return {ok: false, message: 'Errore durante la cancellazione dell’ordine'}
+          }
+
+          console.log('Carrello cancellato con successo')
+          clearCart()
+          return {ok: true, message: 'Carrello cancellato con successo'}
+        } catch (error) {
+          console.error('Errore di rete:', error)
+            return {ok: false, message: 'Errore di rete: impossibile contattare il server'}
+        }
+      }
+
     return {
       itemsByTurno,
       getItems,
@@ -141,7 +182,8 @@ export const useCartStore = defineStore(
       clearCart,
       clearAllCarts,
       confirmCart,
-      getOrdineByTurno
+      getOrdineByTurno,
+      deleteChar
     }
   },
   {

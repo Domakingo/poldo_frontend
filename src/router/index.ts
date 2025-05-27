@@ -20,76 +20,71 @@ const router = createRouter({
   routes: [
     {
       path: '/',
-      name: 'home',
+      name: 'Home',
       component: HomeView,
       meta: { autenticated: true, role: ['admin','terminale','prof','segreteria','paninaro','studente','gestore'] }
     },
     {
       path: '/login',
-      name: 'login',
+      name: 'Login',
       component: LoginView,
     },
     {
       path: '/prodotti',
-      name: 'prodotti',
-      component: ProdottiView
+      name: 'Prodotti',
+      component: ProdottiView,
+      meta: { requiresTurno: true, autenticated: true, role: ['admin','terminale','prof','segreteria','paninaro','studente','gestore'] }
     },
     {
       path: '/carrello',
-      name: 'carrello',
+      name: 'Carrello',
       component: CarrelloView,
       meta: { requiresTurno: true, autenticated: true, role: ['admin','terminale','prof','segreteria','paninaro','studente','gestore']  }
     },
     {
-        path: '/qr',
-        name: 'QRCode',
-        component: QRView,
-        
-    },
-    {
       path: '/gestione/addProdotto',
-      name: 'addProdotto',
+      name: 'Aggiungi Prodotto',
       component: AddProdottoView,
       meta: { autenticated: true, role: ['admin','gestore'] }
     },
     {
       path: '/gestione/prodotti',
-      name: 'modificaProdotti',
+      name: 'Modifica Prodotto',
       component: ModificaView,
       meta: { autenticated: true, role: ['admin','gestore'] }
     },
     {
       path: '/gestione/ordinazioni',
-      name: 'ordinazioni',
+      name: 'Ordinazioni',
       component: OrdinazioniView,
       meta: { autenticated: true, role: ['admin','gestore'] }
     },
     {
       path: '/gestione/ordinazioni/prof',
-      name: 'ordinazioniProf',
+      name: 'Ordinazioni Prof',
       component: OrdinazioniProf,
       meta: { autenticated: true, role: ['admin','gestore'] }
     },
     {
       path: '/autenticazione',
-      name: 'autenticazione',
+      name: 'Autenticazione',
       component: AuthView
     },
     {
       path: '/reports',
-      name: 'reports',
+      name: 'Reports',
       component: ReportsView
     },    {
       path: '/utenti',
-      name: 'utenti',
+      name: 'Utenti',
       component: UtentiView,
-      meta: { requiresAdmin: true }
+      meta: { autenticated: true, role: ['admin'] }
     },
     {
       path: '/gestioni',
-      name: 'gestioni',
+      name: 'Gestioni',
       component: GestioniView,
-      meta: { requiresAdmin: true }
+      meta: { autenticated: true, role: ['admin'] }
     }
   ],
 })

@@ -6,51 +6,12 @@ export const API_CONFIG = {
   BASE_URL: 'http://figliolo.it:5006/v1',
 };
 
-// Helper function for creating proper headers with auth token
-export const getAuthHeaders = () => {
-  const token = localStorage.getItem('token');
-  return {
-    'Authorization': `Bearer ${token}`,
-    'Content-Type': 'application/json'
-  };
-};
-
-// Common fetch wrapper with error handling
-export const fetchWithAuth = async (url: string, options: RequestInit = {}) => {
-  try {
-    // Make the request
-    const response = await fetch(url, {
-      ...options,
-      credentials: 'include'
-    });
-
-    // Handle errors
-    if (!response.ok) {
-      const errorData = await response.json().catch(() => null);
-      throw new Error(
-        errorData?.error ||
-        `Errore API: ${response.status} ${response.statusText}`
-      );
-    }
-
-    // Parse response
-    const data = await response.json().catch(() => null);
-    return { success: true, data };
-  } catch (error: any) {
-    console.error('API request failed:', error);
-    return {
-      success: false,
-      error: error.message || 'Si è verificato un errore durante la richiesta'
-    };
-  }
-};
-
 // Helper function to handle API requests
 export interface HandleRequestOptions extends RequestInit {
-  // You can extend this interface if you want to add custom options in the future
+  
 }
 
-export interface ApiError {
+export interface A1piError {
   message: string;
 }
 

@@ -68,7 +68,7 @@
             </tr>
           </thead>
           <tbody>
-            <tr v-for="user in filteredUsers" :key="user.idUtente" :class="{ 'banned': user.bannato === 1 }">
+            <tr v-for="user in filteredUsers" :key="user.idUtente">
             <td>{{ user.idUtente }}</td>
             <td>{{ user.mail }}</td>
             <td>
@@ -455,7 +455,7 @@ tr.banned {
 }
 
 .actions {
-  display: flex;
+  /* display: flex; */
   gap: 8px;
 }
 
