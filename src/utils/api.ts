@@ -1,4 +1,3 @@
-// API configuration and utility functions
 export const API_CONFIG = {
   BASE_URL: 'http://figliolo.it:5006/v1',
 };
@@ -21,7 +20,6 @@ export const handleRequest = async <T>(
       ...init
     });
 
-    // Handle 204/205 (No Content) responses
     if (response.status === 204 || response.status === 205) {
       return undefined as unknown as T;
     }

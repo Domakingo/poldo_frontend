@@ -16,7 +16,7 @@ const showMenu = ref(false)
 const turnoStore = useTurnoStore()
 
 // Estrai dinamicamente le rotte autorizzate e i titoli dal meta
-const excluded = ['login', 'autenticazione', 'reports', 'qr']
+const excluded = ['login', 'autenticazione', 'reports', 'qr', 'Pagine Non Trovata']
 
 const navRoutes = computed(() =>
   router

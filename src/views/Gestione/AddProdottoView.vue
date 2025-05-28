@@ -23,46 +23,31 @@ const newProduct = ref({
   tags: [] as string[],
   isActive: true,
   imageFile: null as File | null,
-  idGestione: authStore.user?.ruolo === 'admin' ? null : authStore.user?.idGestione // Campo per gestione
+  // Correzione: usa ownerID invece di idGestione
+  ownerID: authStore.user?.ruolo === 'admin' ? null : authStore.user?.idGestione
 })
 
 const imagePreview = ref('')
 const isSubmitting = ref(false)
 
-// Computed properties
 const isAdmin = computed(() => authStore.user?.ruolo === 'admin')
 const showGestioneSelect = computed(() => isAdmin.value && gestioniStore.gestioni.length > 0)
+const isFormValid = computed(() => {
+  return newProduct.value.title.trim() &&
+         newProduct.value.description.trim() &&
+         newProduct.value.price > 0 &&
+         newProduct.value.quantity > 0 &&
+         // Correzione: controlla ownerID invece di idGestione
+         (!isAdmin.value || newProduct.value.ownerID !== null)
+})
 
 onMounted(async () => {
   try {
     await filtersStore.initializeFilters()
-
-    // Carica gestioni solo se admin
-    if (isAdmin.value) {
-      await gestioniStore.fetchGestioni()
-    }
   } catch (error) {
     console.error('Errore durante il caricamento:', error)
   }
-
-  newProduct.value = {
-    title: '',
-    description: '',
-    price: 0,
-    quantity: 0,
-    ingredients: [],
-    tags: [],
-    isActive: true,
-    imageFile: null
-  }
-  imagePreview.value = ''
 });
-
-// Aggiunto handler per selezione gestione
-const handleGestioneSelect = (event: Event) => {
-  const select = event.target as HTMLSelectElement
-  newProduct.value.idGestione = parseInt(select.value)
-}
 
 const handleImageUpload = (event: Event) => {
   const input = event.target as HTMLInputElement
@@ -76,23 +61,14 @@ const submitProduct = async () => {
   try {
     isSubmitting.value = true
 
-    // Validazione campi obbligatori
-    const requiredFields = [
-      !newProduct.value.title.trim(),
-      !newProduct.value.description.trim(),
-      newProduct.value.quantity <= 0,
-      newProduct.value.price <= 0,
-      isAdmin.value && !newProduct.value.idGestione
-    ]
-
-    if (requiredFields.some(Boolean)) {
-      throw new Error('Compila tutti i campi obbligatori')
+    if (isAdmin.value && !newProduct.value.ownerID) {
+      throw new Error('Seleziona una gestione')
     }
 
     await productsStore.addProduct({
       ...newProduct.value,
       imageSrc: imagePreview.value || 'http://figliolo.it:5006/v1/prodotti/image/-1',
-      idGestione: newProduct.value.idGestione as number
+      ownerID: newProduct.value.ownerID as number
     })
 
     pendingChanges.clearAllChanges()
@@ -110,93 +86,116 @@ const submitProduct = async () => {
   <div class="add-product-page">
     <div class="page-header">
       <button class="back-button" @click="router.replace('/gestione/prodotti')">
-        &larr; Torna ai Prodotti
+        &larr; Torna
       </button>
-
-      <h1>Aggiungi Nuovo Prodotto</h1>
-
+      <h1>Aggiungi Prodotto</h1>
       <div class="form-actions">
-        <button type="button" class="cancel-button" @click="router.push('/prodotti')">
+        <button type="button" class="cancel-button" @click="router.push('/gestione/prodotti')">
           Annulla
         </button>
-        <button type="submit" class="submit-button" form="productForm"
-          :disabled="!newProduct.title || !newProduct.description || isSubmitting">
-          <span v-if="isSubmitting">Salvataggio in corso...</span>
-          <span v-else>Crea Prodotto</span>
+        <button
+          type="submit"
+          class="submit-button"
+          form="productForm"
+          :disabled="!isFormValid || isSubmitting"
+        >
+          <span v-if="isSubmitting">Salvataggio...</span>
+          <span v-else>Crea</span>
         </button>
       </div>
     </div>
 
     <div class="form-container">
       <form id="productForm" @submit.prevent="submitProduct">
-
-        <div class="form-section" v-if="isAdmin">
-          <div class="form-group">
-            <label>Seleziona Gestione *</label>
-            <select
-              v-model="newProduct.idGestione"
-              @change="handleGestioneSelect"
-              required
-              class="gestione-select"
-            >
-              <option :value="null" disabled>Seleziona una gestione</option>
-              <option
-                v-for="gestione in gestioniStore.gestioni"
-                :key="gestione.id"
-                :value="gestione.id"
-              >
-                {{ gestione.nome }}
-              </option>
-            </select>
-          </div>
-        </div>
-
-        <div class="form-section">
+        <div class="form-grid">
           <div class="form-column">
+            <div class="form-group" v-if="showGestioneSelect">
+              <label>Gestione *</label>
+              <select
+                v-model="newProduct.ownerID"
+                required
+                class="gestione-select"
+              >
+                <option :value="null" disabled>Seleziona gestione</option>
+                <option
+                  v-for="gestione in gestioniStore.gestioni"
+                  :key="gestione.idGestione"
+                  :value="gestione.idGestione"
+                >
+                  {{ gestione.nome }}
+                </option>
+              </select>
+            </div>
+
             <div class="form-group">
-              <label>Nome Prodotto *</label>
-              <input v-model="newProduct.title" type="text" required placeholder="Es. Panino con tonno" />
+              <label>Nome *</label>
+              <input
+                v-model="newProduct.title"
+                type="text"
+                required
+                placeholder="Es. Panino con tonno"
+              />
             </div>
 
             <div class="form-group">
               <label>Descrizione *</label>
-              <textarea v-model="newProduct.description" required placeholder="Descrivi il prodotto..." rows="4" />
+              <textarea
+                v-model="newProduct.description"
+                required
+                placeholder="Descrivi il prodotto..."
+                rows="3"
+              />
             </div>
 
-            <div class="form-group short-input">
-              <label>Prezzo (€) *</label>
-              <input v-model.number="newProduct.price" type="number" min="0" step="0.01" required placeholder="0.00" />
-            </div>
+            <div class="form-row">
+              <div class="form-group">
+                <label>Prezzo (€) *</label>
+                <input
+                  v-model.number="newProduct.price"
+                  type="number"
+                  min="0"
+                  step="0.01"
+                  required
+                  placeholder="0.00"
+                />
+              </div>
 
-            <div class="form-group short-input">
-              <label>Quantità *</label>
-              <input v-model.number="newProduct.quantity" type="number" min="0" required placeholder="0" />
-            </div>
+              <div class="form-group">
+                <label>Quantità *</label>
+                <input
+                  v-model.number="newProduct.quantity"
+                  type="number"
+                  min="0"
+                  required
+                  placeholder="0"
+                />
+              </div>
 
-            <div class="form-group switch-group">
-              <label>Prodotto Attivo</label>
-              <label class="switch">
-                <input v-model="newProduct.isActive" type="checkbox" />
-                <span class="slider"></span>
-              </label>
+              <div class="form-group">
+                <label>Attivo</label>
+                <label class="switch">
+                  <input v-model="newProduct.isActive" type="checkbox" />
+                  <span class="slider"></span>
+                </label>
+              </div>
             </div>
           </div>
 
-          <div class="form-column">
+          <div class="form-column image-column">
             <div class="form-group">
-              <label>Immagine del Prodotto</label>
+              <label>Immagine</label>
               <div class="image-upload-card">
                 <label class="upload-label">
                   <input type="file" accept="image/*" @change="handleImageUpload" hidden />
                   <div v-if="imagePreview" class="image-preview">
-                    <img :src="imagePreview" alt="Anteprima immagine" />
-                    <div class="overlay">Cambia Immagine</div>
+                    <img :src="imagePreview" alt="Anteprima" />
+                    <div class="overlay">Cambia</div>
                   </div>
                   <div v-else class="upload-placeholder">
                     <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24">
                       <path d="M19 13h-6v6h-2v-6H5v-2h6V5h2v6h6v2z" />
                     </svg>
-                    <p>Clicca per caricare un'immagine</p>
+                    <p>Carica immagine</p>
                   </div>
                 </label>
               </div>
@@ -204,20 +203,24 @@ const submitProduct = async () => {
           </div>
         </div>
 
-        <div class="form-section">
+        <div class="form-row">
           <div class="form-group ingredients-section">
             <h4>Ingredienti</h4>
             <div class="scroll-container">
               <ul v-if="filtersStore.allIngredients.length > 0">
                 <li v-for="ingredient in filtersStore.allIngredients" :key="ingredient">
                   <label class="ingredient-item">
-                    <input type="checkbox" :value="ingredient" v-model="newProduct.ingredients"
-                      :disabled="isSubmitting" />
+                    <input
+                      type="checkbox"
+                      :value="ingredient"
+                      v-model="newProduct.ingredients"
+                      :disabled="isSubmitting"
+                    />
                     {{ ingredient }}
                   </label>
                 </li>
               </ul>
-              <p v-else class="no-items">Nessun ingrediente disponibile</p>
+              <p v-else class="no-items">Nessun ingrediente</p>
             </div>
           </div>
 
@@ -227,16 +230,20 @@ const submitProduct = async () => {
               <ul v-if="filtersStore.allTags.length > 0">
                 <li v-for="tag in filtersStore.allTags" :key="tag">
                   <label class="tag-item">
-                    <input type="checkbox" :value="tag" v-model="newProduct.tags" :disabled="isSubmitting" />
+                    <input
+                      type="checkbox"
+                      :value="tag"
+                      v-model="newProduct.tags"
+                      :disabled="isSubmitting"
+                    />
                     {{ tag }}
                   </label>
                 </li>
               </ul>
-              <p v-else class="no-items">Nessun tag disponibile</p>
+              <p v-else class="no-items">Nessun tag</p>
             </div>
           </div>
         </div>
-
       </form>
     </div>
   </div>
@@ -244,21 +251,20 @@ const submitProduct = async () => {
 
 <style scoped>
 .add-product-page {
-  max-width: 1200px;
+  max-width: 1400px;
   margin: 0 auto;
   padding: 1rem;
   height: calc(100vh - 60px);
   display: flex;
   flex-direction: column;
-  overflow: hidden;
 }
 
 .page-header {
   display: flex;
-  justify-content: space-evenly;
+  justify-content: space-between;
   align-items: center;
   margin-bottom: 1rem;
-  padding: 0.8rem 0;
+  padding: 0.8rem;
   background: var(--color-background-soft);
   border-radius: 8px;
 }
@@ -268,82 +274,73 @@ const submitProduct = async () => {
   border: none;
   color: var(--poldo-primary);
   cursor: pointer;
-  font-size: 1rem;
-  align-items: center;
+  padding: 0.5rem;
+  min-width: 80px;
 }
 
 h1 {
   color: var(--poldo-primary);
-  font-size: 2rem;
-  padding: 0 1.5rem;
+  font-size: 1.6rem;
+  margin: 0;
+  text-align: center;
+  flex-grow: 1;
 }
 
 .form-container {
   background: var(--color-background-soft);
   border-radius: 8px;
   padding: 1.5rem;
-  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.1);
   flex-grow: 1;
-  overflow: hidden;
-  display: flex;
+  overflow: auto;
 }
 
 form {
-  flex: 1;
   display: flex;
   flex-direction: column;
-  overflow: hidden;
+  gap: 1.2rem;
 }
 
-.form-section {
+.form-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+  grid-template-columns: 1.5fr 1fr;
   gap: 1.5rem;
 }
 
-.form-column {
-  display: flex;
-  flex-direction: column;
+.form-row {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  gap: 1rem;
+  align-items: end;
 }
 
 .form-group {
-  margin-bottom: 0.5rem;
+  margin-bottom: 0.8rem;
 }
 
 label {
   display: block;
-  margin-bottom: 0.6rem;
+  margin-bottom: 0.4rem;
   font-weight: 600;
   color: var(--poldo-primary);
-  font-size: 0.95rem;
+  font-size: 0.9rem;
 }
 
 input[type="text"],
 input[type="number"],
-textarea {
+textarea,
+select {
   width: 100%;
   padding: 0.6rem;
   border: 1px solid var(--color-border);
   border-radius: 6px;
   background: var(--color-background);
   font-size: 0.9rem;
-  transition: all 0.3s ease;
-}
-
-.form-group.short-input input {
-  width: 50%;
-  max-width: auto;
-}
-
-.form-group.short-input {
-  display: flex;
-  align-items: center;
-  gap: 1.25rem;
 }
 
 input[type="text"]:focus,
 input[type="number"]:focus,
-textarea:focus {
+textarea:focus,
+select:focus {
   outline: none;
   border-color: var(--poldo-primary);
   box-shadow: 0 0 0 2px rgba(239, 194, 12, 0.2);
@@ -352,35 +349,25 @@ textarea:focus {
 textarea {
   resize: vertical;
   min-height: 90px;
-  font-size: 0.9rem;
 }
 
 .image-upload-card {
   border: 1px dashed var(--color-border);
   border-radius: 8px;
-  padding: 1rem;
+  padding: 0.8rem;
   text-align: center;
-  transition: all 0.3s ease;
   height: 100%;
-}
-
-.image-upload-card:hover {
-  border-color: var(--poldo-primary);
-  background: rgba(239, 194, 12, 0.05);
-}
-
-.upload-label {
-  cursor: pointer;
-  display: block;
 }
 
 .upload-placeholder {
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: 0.8rem;
+  justify-content: center;
+  gap: 0.5rem;
   color: var(--color-text-soft);
-  padding: 1.5rem;
+  padding: 1.2rem;
+  height: 100%;
 }
 
 .upload-placeholder svg {
@@ -394,11 +381,12 @@ textarea {
   border-radius: 6px;
   overflow: hidden;
   border: 1px solid var(--color-border);
+  height: 100%;
 }
 
 .image-preview img {
   width: 100%;
-  height: 200px;
+  height: 180px;
   object-fit: cover;
 }
 
@@ -409,7 +397,7 @@ textarea {
   right: 0;
   background: rgba(0, 0, 0, 0.7);
   color: white;
-  padding: 0.6rem;
+  padding: 0.5rem;
   font-size: 0.8rem;
   opacity: 0;
   transition: opacity 0.3s ease;
@@ -423,8 +411,7 @@ textarea {
 .tags-section {
   background: var(--color-background);
   border-radius: 8px;
-  padding: 1rem;
-  border: 1px solid var(--color-border);
+  padding: 0.8rem;
   height: 100%;
 }
 
@@ -435,12 +422,7 @@ textarea {
 }
 
 .scroll-container::-webkit-scrollbar {
-  width: 6px;
-}
-
-.scroll-container::-webkit-scrollbar-track {
-  background: var(--color-background-soft);
-  border-radius: 3px;
+  width: 5px;
 }
 
 .scroll-container::-webkit-scrollbar-thumb {
@@ -455,36 +437,27 @@ ul {
 }
 
 li {
-  padding: 0.6rem;
-  margin: 0.4rem 0;
+  padding: 0.5rem 0.8rem;
+  margin: 0.3rem 0;
   background: var(--color-background-soft);
   border-radius: 6px;
-  transition: all 0.2s ease;
   display: flex;
   align-items: center;
-  gap: 0.8rem;
+  gap: 0.6rem;
+  font-size: 0.9rem;
 }
 
 input[type="checkbox"] {
-  width: 18px;
-  height: 18px;
+  width: 16px;
+  height: 16px;
   accent-color: var(--poldo-primary);
-  flex-shrink: 0;
 }
 
 .no-items {
   text-align: center;
   color: var(--color-text-soft);
   padding: 1rem;
-  font-style: italic;
-  font-size: 0.9rem;
-}
-
-.switch-group {
-  display: flex;
-  align-items: center;
-  gap: 0.8rem;
-  margin-top: 0.8rem;
+  font-size: 0.85rem;
 }
 
 .switch {
@@ -524,95 +497,96 @@ input[type="checkbox"] {
   border-radius: 50%;
 }
 
-input:checked+.slider {
+input:checked + .slider {
   background-color: var(--poldo-primary);
 }
 
-input:checked+.slider:before {
+input:checked + .slider:before {
   transform: translateX(20px);
 }
 
 .form-actions {
   display: flex;
-  background: var(--color-background-soft);
-  padding: 1rem 0;
-  gap: 0.75rem;
-}
-
-.form-actions button:hover {
-  cursor: pointer;
+  gap: 0.8rem;
 }
 
 .cancel-button {
-  background: var(--color-background-soft);
+  background: transparent;
   color: var(--color-text);
-  padding: 0.6rem 1.2rem;
+  padding: 0.6rem 1rem;
   border: 1px solid var(--color-border);
   border-radius: 6px;
   font-weight: 600;
-  transition: all 0.3s ease;
-  font-size: 0.9rem;
-}
-
-.cancel-button:hover {
-  border-color: var(--poldo-primary);
+  min-width: 80px;
 }
 
 .submit-button {
   background: var(--poldo-primary);
   color: white;
-  padding: 0.6rem 1.5rem;
+  padding: 0.6rem 1.2rem;
   border: none;
   border-radius: 6px;
   font-weight: 600;
-  transition: all 0.3s ease;
-  font-size: 0.9rem;
+  min-width: 100px;
 }
 
 .submit-button:disabled {
   opacity: 0.7;
-  cursor: not-allowed !important;
+  cursor: not-allowed;
   background: var(--color-border);
 }
 
-@media (max-width: 768px) {
-  .add-product-page {
-    height: 100dvh;
-    min-height: 100vh;
-    padding: 0.8rem;
-  }
-
-  .page-header {
-    padding: 0.6rem;
-  }
-
-  .back-button {
-    position: static;
-    transform: none;
-    margin-bottom: 0.5rem;
-    width: 100%;
-    justify-content: center;
-  }
-
-  h1 {
-    font-size: 1.2rem;
-    padding: 0 0.5rem;
-  }
-
-  .form-container {
-    padding: 1rem;
+@media (max-width: 992px) {
+  .form-grid {
+    grid-template-columns: 1fr;
+    gap: 1rem;
   }
 
   .image-preview img {
-    height: 160px;
+    height: 250px;
+  }
+}
+
+@media (max-width: 768px) {
+  .page-header {
+    flex-wrap: wrap;
+    gap: 0.5rem;
+  }
+
+  h1 {
+    font-size: 1.4rem;
+    order: -1;
+    width: 100%;
+  }
+
+  .form-row {
+    grid-template-columns: 1fr;
+  }
+
+  .ingredients-section,
+  .tags-section {
+    height: auto;
+    max-height: 250px;
   }
 
   .scroll-container {
-    max-height: 150px;
+    max-height: 180px;
+  }
+}
+
+@media (max-width: 480px) {
+  .form-container {
+    padding: 0.8rem;
   }
 
-  .form-section {
-    grid-template-columns: 1fr;
+  .form-actions {
+    width: 100%;
+    justify-content: space-between;
+  }
+
+  .back-button, .cancel-button, .submit-button {
+    font-size: 0.85rem;
+    padding: 0.5rem 0.8rem;
   }
 }
 </style>

@@ -1,4 +1,3 @@
-<!-- components/SwitchButtons.vue -->
 <script setup lang="ts">
 defineProps<{
     selected: string
@@ -19,18 +18,18 @@ const emit = defineEmits(['update:selected'])
 
 <template>
     <div class="switch-container">
-        <button 
+        <button
             :key="right.value"
-            class="switch-btn" 
+            class="switch-btn"
             :class="{ active: selected === right.value }"
             @click="emit('update:selected', right.value)"
         >
             <span v-html="right.icon" class="icon"></span>
             <span>{{ right.label }}</span>
         </button>
-        <button 
+        <button
             :key="left.value"
-            class="switch-btn" 
+            class="switch-btn"
             :class="{ active: selected === left.value }"
             @click="emit('update:selected', left.value)"
         >

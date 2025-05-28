@@ -17,8 +17,6 @@ const props = defineProps({
     }
 })
 
-console.log("bbbbbb", props.disabled)
-
 const cartStore = useCartStore()
 
 const currentQuantity = computed(() => {

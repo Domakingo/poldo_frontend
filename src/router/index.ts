@@ -88,7 +88,7 @@ const router = createRouter({
     },
     {
       path: '/:pathMatch(.*)*',
-      name: 'NotFound',
+      name: 'Pagine Non Trovata',
       component: NotFoundView,
       meta: { autenticated: true }
     }

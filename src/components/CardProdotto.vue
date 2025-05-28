@@ -7,6 +7,7 @@ import { useGestioniStore, getColorForGestione } from '@/stores/gestioni'
 
 const props = defineProps<{
   productId: number
+  disabled?: boolean
 }>()
 
 const productsStore = useProductsStore()
@@ -21,7 +22,7 @@ const product = computed(() => ({
 // Trova il nome della gestione in base all'ownerID
 const gestioneName = computed(() => {
   if (!product.value || !gestioniStore.gestioni.length) return ''
-  const gestione = gestioniStore.gestioni.find(g => g.id === product.value.ownerID)
+  const gestione = gestioniStore.gestioni.find(g => g.idGestione === product.value.ownerID)
   return gestione ? gestione.nome : ''
 })
 
@@ -57,7 +58,8 @@ const flipCard = (event: Event) => {
       <div class="card-side card-front" :class="{ 'out-of-stock': product.disponibility <= 0 }">
         <div class="card-prodotto">
           <!-- Etichetta gestione -->
-          <div v-if="gestioneName" class="gestione-label" :style="{ backgroundColor: getColorForGestione(gestioneName) }">
+          <div v-if="gestioneName" class="gestione-label"
+            :style="{ backgroundColor: getColorForGestione(gestioneName) }">
             {{ gestioneName }}
           </div>
 
@@ -85,7 +87,7 @@ const flipCard = (event: Event) => {
             Disponibili: {{ product.disponibility }}/{{ product.quantity }}
           </div>
 
-          <QuantityControl v-if="product.disponibility > 0" :product-id="id" :disabled="disabled"/>
+          <QuantityControl v-if="product.disponibility > 0" :product-id="id" :disabled="props.disabled" />
           <div v-else class="out-of-stock-message">Prodotto esaurito</div>
         </div>
       </div>

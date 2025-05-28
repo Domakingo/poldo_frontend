@@ -3,7 +3,7 @@ import { ref, computed } from 'vue'
 import { API_CONFIG } from '@/utils/api';
 
 export interface Gestione {
-  id: number
+  idGestione: number
   nome: string
 }
 
@@ -32,10 +32,10 @@ export const useGestioniStore = defineStore('gestioni', () => {
   const gestioni = ref<Gestione[]>([])
 
   const gestioneOptions = computed(() =>
-    gestioni.value.map(g => ({ value: g.id, label: g.nome }))
+    gestioni.value.map(g => ({ value: g.idGestione, label: g.nome }))
   )
 
-  const fetchAll = async () => {
+  const fetchGestioni = async () => {
     try {
       const response = await fetch(
         `${API_CONFIG.BASE_URL}/gestioni`, {
@@ -50,7 +50,7 @@ export const useGestioniStore = defineStore('gestioni', () => {
       const rawData = await response.json()
 
       gestioni.value = rawData.map((item: any) => ({
-        id: item.idGestione,
+        idGestione: item.idGestione,
         nome: item.nome
       }))
 
@@ -60,7 +60,7 @@ export const useGestioniStore = defineStore('gestioni', () => {
     }
   }
 
-  fetchAll();
+  fetchGestioni();
 
   return {
     gestioni,

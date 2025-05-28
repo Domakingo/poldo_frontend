@@ -180,8 +180,8 @@ onUnmounted(() => window.removeEventListener('resize', onResize))
 
         <!-- Mobile view -->
         <CardGrid v-if="isMobile" :minWidth="'300px'">
-          <CardProdotto v-for="product in macroFilteredProducts" :product-id="product.id" v-bind="product"
-            :editable="true" />
+          <CardProdotto v-for="product in macroFilteredProducts" :key="product.id" :product-id="product.id"
+            :editable="true" :disabled="hasPendingChanges" />
         </CardGrid>
 
         <!-- Desktop view -->
@@ -189,7 +189,8 @@ onUnmounted(() => window.removeEventListener('resize', onResize))
           <div v-for="(products, macro) in groupedByMacro" :key="macro">
             <h2 v-if="products.length > 0" class="macro-title">{{ macro }}</h2>
             <CardGrid :minWidth="'280px'">
-              <CardProdotto v-for="product in products" :product-id="product.id" v-bind="product" :editable="true" />
+              <CardProdotto v-for="product in products" :key="product.id" :product-id="product.id" :editable="true"
+                :disabled="hasPendingChanges" />
             </CardGrid>
           </div>
         </template>

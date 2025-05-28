@@ -1,5 +1,5 @@
 import { defineStore } from 'pinia'
-import { ref, computed } from 'vue'
+import { computed } from 'vue'
 import { useTurnoStore } from './turno'
 import { API_CONFIG } from '@/utils/api'
 
@@ -98,7 +98,6 @@ export const useCartClasseStore = defineStore('cartClasse', () => {
       console.error('Error confirming order:', result.statusText)
       return false
     }
-
 
     return true
   }
