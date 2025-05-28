@@ -63,7 +63,9 @@ export const useOrdiniStore = defineStore('ordini', () => {
   
   // Funzione per recuperare i dati dell'utente
   async function fetchUserById(userId: number) {
-    if (userCache.value[userId]) return userCache.value[userId]
+    if (userCache.value[userId]) {
+      return userCache.value[userId]
+    }
 
     try {
       const userData = await handleRequest<any>(
@@ -73,34 +75,35 @@ export const useOrdiniStore = defineStore('ordini', () => {
       userCache.value[userId] = userData
       return userData
     } catch (error) {
-      console.error(`Errore nel recupero dei dati dell'utente con ID ${userId}:`, error)
+      console.error(`Errore nel recupero dei dati dell'utente con ID ${userId}:`, error);
       return null
     }
-  }
-    // Recupera gli ordini dei professori
+  }  // Recupera gli ordini dei professori
   async function fetchProfOrders() {
     loading.value = true
-    try {
-      // Get the current user's role and gestione ID
-      const authStore = useAuthStore();
-      const userRole = authStore.user?.ruolo || '';
-      const userGestioneId = authStore.user?.idGestione;
-      
+    try {      
       let url = `ordini/classi?startDate=${selectedDate.value}&endDate=${selectedDate.value}`;
-      
-      // For gestore users, add a filter for their gestione
-      if (userRole === 'gestore' && userGestioneId) {
-        url += `&idGestione=${userGestioneId}`;
-      }
-      
+            
       const data = await handleRequest<any[]>(
         url,
-        'Errore nel recupero degli ordini dei professori'
+        'Errore nel recupero degli ordini dei professori',
+        undefined,
+        30000 // 30 seconds timeout
       )
+      
+      // Check if data is valid
+      if (!data || !Array.isArray(data)) {
+        console.error('Invalid data format received:', data)
+        error.value = 'Formato dati non valido ricevuto dal server'
+        profOrders.value = []
+        loading.value = false
+        return
+      }
       
       const professorOrders = data.filter((order: any) => 
         order && order.oraRitiro !== null && order.oraRitiro !== undefined
       );
+      
       const processedOrders = []
       
       for (const order of professorOrders) {
@@ -126,7 +129,7 @@ export const useOrdiniStore = defineStore('ordini', () => {
         }
       }
 
-      profOrders.value = processedOrders
+      profOrders.value = processedOrders;
     } catch (err) {
       console.error('Errore nel recupero degli ordini dei professori:', err)
       error.value = 'Errore nel caricamento degli ordini dei professori.'
@@ -135,20 +138,10 @@ export const useOrdiniStore = defineStore('ordini', () => {
       loading.value = false
     }
   }    // Recupera gli ordini per classe
-    async function fetchClassOrders(turno: number) {
-      loading.value = true
-      try {
-        // Get the current user's role and gestione ID
-        const authStore = useAuthStore();
-        const userRole = authStore.user?.ruolo || '';
-        const userGestioneId = authStore.user?.idGestione;
-      
+  async function fetchClassOrders(turno: number) {
+    loading.value = true
+    try {      
       let url = `ordini/classi?startDate=${selectedDate.value}&endDate=${selectedDate.value}&nTurno=${turno}`;
-      
-      // For gestore users, add a filter for their gestione
-      if (userRole === 'gestore' && userGestioneId) {
-        url += `&idGestione=${userGestioneId}`;
-      }
       
       const response = await handleRequest<any>(
         url,
@@ -172,6 +165,7 @@ export const useOrdiniStore = defineStore('ordini', () => {
         confermato: order.confermato,
         preparato: order.preparato
       }))
+
     } catch (err) {
       console.error('Errore nel recupero degli ordini per classe:', err)
       error.value = 'Errore nel caricamento degli ordini per classe.'
@@ -179,18 +173,19 @@ export const useOrdiniStore = defineStore('ordini', () => {
     } finally {
       loading.value = false
     }
-  }  // Funzione per segnare un ordine come preparato
+  }
+  // Funzione per segnare un ordine come preparato
   async function markOrderAsPrepared(classeId: number | string, turno: number) {
     try {      
       // Update local state immediately for better UI response
       if (turno === 2) {
         // Update professor orders
-        profOrders.value = profOrders.value.map((order: Order) => {
+        profOrders.value = profOrders.value.map(order => {
           if (order.classe === classeId || String(order.classe) === String(classeId)) {
             return {
               ...order,
               preparato: true,
-              prodotti: order.prodotti.map((product: Product) => ({
+              prodotti: order.prodotti.map(product => ({
                 ...product,
                 preparato: true
               }))
@@ -198,13 +193,14 @@ export const useOrdiniStore = defineStore('ordini', () => {
           }
           return order;
         });
-      } else {        // Update class orders
-        classOrders.value = classOrders.value.map((order: ClassOrder) => {
+      } else {
+        // Update class orders
+        classOrders.value = classOrders.value.map(order => {
           if (order.classeId === classeId || String(order.classeId) === String(classeId)) {
             return {
               ...order,
               preparato: true,
-              prodotti: order.prodotti?.map((product: Product) => ({
+              prodotti: order.prodotti?.map(product => ({
                 ...product,
                 preparato: true
               })) || []
@@ -219,86 +215,77 @@ export const useOrdiniStore = defineStore('ordini', () => {
         'Errore nel marcare l\'ordine come preparato',
         { method: 'PUT' }
       )
-      
-      if (turno === 2) {
-        await fetchProfOrders();
-      } else {
-        await fetchClassOrders(turno);
-      }
 
       return true
     } catch (error) {
       console.error('Errore nel marcare l\'ordine come preparato:', error)
       return false
     }
-      }
+    
+  }
 
-  async function markProductAsPrepared(productId: number, turno: number) {
-    try {
-      // Improved validation that correctly handles turno=0
-      if (productId === undefined || productId === null) {
-        throw new Error('ID prodotto è obbligatorio');
-      }    
-      if (turno === undefined || turno === null) {
-        throw new Error('Turno è obbligatorio');
-      }
 
-      // Use the auth store to get user information
-      const authStore = useAuthStore();
-      
-      try {
-        // If not already authenticated, check authentication
-        if (!authStore.isAuthenticated) {
-          await authStore.checkAuth();
-        }
-      } catch (userError) {
-        // Silently continue, just log the error
-      }
-      
-      // Update the local state for immediate UI feedback
-      // Update classOrders first
-      classOrders.value.forEach((order: ClassOrder) => {
-        if (order && Array.isArray(order.prodotti)) {
-          order.prodotti.forEach((product: Product) => {
-            if (product.idProdotto === productId) {
-              product.preparato = true;
-            }
-          });
-        }
-      });
-      
-      // Update profOrders
-      profOrders.value.forEach((order: Order) => {
-        if (order && Array.isArray(order.prodotti)) {
-          order.prodotti.forEach((product: Product) => {
-            if (product.idProdotto === productId) {
-              product.preparato = true;
-            }
-          });
-        }
-      });
-      
-      // Call the API
-      await handleRequest<any>(
-        `ordini/prodotti/${productId}/prepara?nTurno=${turno}`,
-        'Errore nel marcare il prodotto come preparato',
-        { 
-          method: 'PUT',
-          headers: {}
-        }
-      )
-
-      // Aggiorna gli ordini in base al turno
-      await fetchProfOrders();
-      if (turno !== 2) {
-        await fetchClassOrders(turno);
-      }
-
-      return true
-    } catch (error) {
-      console.error('Errore nel marcare il prodotto come preparato:', error)
-      return false
+async function markProductAsPrepared(productId: number, turno: number) {
+  try {
+    // Improved validation that correctly handles turno=0
+    if (productId === undefined || productId === null) {
+      throw new Error('ID prodotto è obbligatorio');
     }
+    
+    if (turno === undefined || turno === null) {
+      throw new Error('Turno è obbligatorio');
+    }
+
+    // Use the auth store to get user information
+    const authStore = useAuthStore();
+    
+    try {
+      // If not already authenticated, check authentication
+      if (!authStore.isAuthenticated) {
+        await authStore.checkAuth();
+      }
+    } catch (userError) {
+      // Silently continue, just log the error
+    }
+    
+    // Update the local state for immediate UI feedback
+    // Update classOrders first
+    classOrders.value.forEach(order => {
+      if (order && Array.isArray(order.prodotti)) {
+        order.prodotti.forEach(product => {
+          if (product.idProdotto === productId) {
+            product.preparato = true;
+          }
+        });
+      }
+    });
+    
+    // Update profOrders
+    profOrders.value.forEach(order => {
+      if (order && Array.isArray(order.prodotti)) {
+        order.prodotti.forEach(product => {
+          if (product.idProdotto === productId) {
+            product.preparato = true;
+          }
+        });
+      }
+    });
+    
+    // Call the API
+    await handleRequest<any>(
+      `ordini/prodotti/${productId}/prepara?nTurno=${turno}`,
+      'Errore nel marcare il prodotto come preparato',
+      { 
+        method: 'PUT',
+        headers: {}
+      }
+    )
+
+    return true
+  } catch (error) {
+    console.error('Errore nel marcare il prodotto come preparato:', error)
+    return false
+  }
 }
 
   // Funzione per modificare la data selezionata
@@ -316,13 +303,9 @@ export const useOrdiniStore = defineStore('ordini', () => {
       return total + (price * quantity)
     }, 0)
   }
-
   // Display user name
   function getOrderUserName(order: Order | ClassOrder): string {
-    if (order.userData && (order.userData.nome || order.userData.cognome)) {
-      return `${order.userData.cognome || ''} ${order.userData.nome || ''}`.trim()
-    }
-    return `Utente #${order.user || 'N/A'}`
+    return `${order.classe || 'N/A'}`
   }
 
   // Reset gli errori

@@ -1,11 +1,11 @@
 <template>
-  <div class="ordinazioni-prof-view">
-    <!-- Loading and error handling -->    <div v-if="loading || ordiniStore.loading" class="loading-indicator">
+  <div class="ordinazioni-prof-view">    <!-- Loading and error handling -->    
+    <div v-if="loading" class="loading-indicator">
       <p>Caricamento ordinazioni...</p>
     </div>
 
-    <div v-else-if="error || ordiniStore.error" class="error-message">
-      <p>{{ error || ordiniStore.error }}</p>
+    <div v-else-if="error" class="error-message">
+      <p>{{ error }}</p>
       <button @click="fetchOrders">Riprova</button>
     </div>
 
@@ -13,12 +13,10 @@
       <p>Nessun ordine dei professori trovato per la data selezionata.</p>
     </div>
 
-    <div v-else>      <!-- Timeline section (40% height) -->      <div class="timeline-container">
-        <ProfessorTimeline
+    <div v-else>      <!-- Timeline section (40% height) -->      <div class="timeline-container">        <ProfessorTimeline
           :profOrders="professorOrders"
           :turnoTimes="turnoTimes"
           :isDetailView="true"
-          @reload="fetchOrders"
         />
       </div>
 
@@ -49,10 +47,11 @@
       </div>
 
       <!-- Bottom section (60% height) -->
-      <div class="content-container">
-        <!-- Product totals (left) -->
+      <div class="content-container">        <!-- Product totals (left) -->
           <ProductTotals
             :classOrders="filteredOrders"
+            :currentTurno="2"
+            @product-marked-as-prepared="handleProductMarkedAsPrepared"
           />
 
         <!-- Orders list (right) -->
@@ -117,10 +116,12 @@ import ProductTotals from '@/components/Gestione/ProductTotals.vue'
 import { formatTime, formatCurrency, timeToMinutes } from '@/utils/timelineUtils'
 import { useTurnoStore } from '@/stores/turno'
 import { useOrdiniStore } from '@/stores/Gestione/ordini'
+import { useAuthStore } from '@/stores/auth'
 
 // Store
 const turnoStore = useTurnoStore()
 const ordiniStore = useOrdiniStore()
+const authStore = useAuthStore()
 
 // Import types from store
 import type { ClassOrder, Order, Product } from '@/stores/Gestione/ordini'
@@ -134,17 +135,34 @@ const error = ref('')
 // Formattazione data
 const selectedDate = ref(ordiniStore.selectedDate)
 
-// Fetch all orders
+// Fetch all orders - simplified without retry
 const fetchOrders = async () => {
+  if (loading.value) {
+    return
+  }
+  
   loading.value = true
   error.value = ''
+  
   try {
+    // Set the selected date in the store before fetching
+    ordiniStore.setSelectedDate(selectedDate.value)
+    
+    // Call the store to fetch professor orders
     await ordiniStore.fetchProfOrders()
-    professorOrders.value = ordiniStore.profOrders
-    allOrders.value = ordiniStore.profOrders
+    
+    // Update local state with store data
+    professorOrders.value = ordiniStore.profOrders || []
+    allOrders.value = ordiniStore.profOrders || []
+    
+    // Check for store errors
+    if (ordiniStore.error) {
+      error.value = ordiniStore.error
+    }
+    
   } catch (err) {
-    error.value = ordiniStore.error || 'Errore nel caricamento degli ordini'
-    console.error(err)
+    console.error('Error in fetchOrders:', err)
+    error.value = 'Errore nel caricamento degli ordini'
     professorOrders.value = []
   } finally {
     loading.value = false
@@ -261,18 +279,30 @@ const calculateOrderTotal = (order: Order | ClassOrder): number => {
 
 // Function to mark an order as prepared
 const markOrderAsPrepared = async (order: ClassOrder) => {
+  // Prevent action if already loading
+  if (loading.value) {
+    return
+  }
+  
   try {
-    if (!order.classe || !order.classeId) {
-      console.error('Impossibile contrassegnare l\'ordine: classe o ID classe mancante')
+    if (!order.classe) {
+      console.error('Impossibile contrassegnare l\'ordine: classe mancante')
       return
     }
+    
+    const classeId = order.classeId || order.classe
 
     // Professor orders are always in turno 2
-    const success = await ordiniStore.markOrderAsPrepared(order.classeId, 2)
+    const success = await ordiniStore.markOrderAsPrepared(classeId, 2)
     
     if (success) {
-      // Refresh the orders
-      await fetchOrders()
+      // Update local state first for immediate UI response
+      professorOrders.value = professorOrders.value.map(o => {
+        if (o.classe === order.classe) {
+          return {...o, preparato: true}
+        }
+        return o
+      })
     } else {
       throw new Error('Errore durante la preparazione dell\'ordine')
     }
@@ -282,29 +312,38 @@ const markOrderAsPrepared = async (order: ClassOrder) => {
   }
 }
 
-// Fetch orders on component mount
-onMounted(async () => {
-  // First fetch the turni data if not already loaded
-  if (turnoStore.turni.length === 0) {
-    await turnoStore.fetchTurni()
-  }
-
-  // Set initial time range values based on turno data
-  if (turnoStore.turni.length > 0) {
-    const times = turnoTimes.value;
-    startTime.value = times.pickupStart;
-    endTime.value = times.pickupEnd;
-  } else {
-    // Fallback default values if no turno data is available
-    startTime.value = '08:00';
-    endTime.value = '15:00';
-  }
-
-  // Set selected date in store (if needed)
-  ordiniStore.setSelectedDate(selectedDate.value)
-  
-  // Then fetch orders
+// Handler for when a product is marked as prepared
+const handleProductMarkedAsPrepared = async ({ productId, turno }: { productId: number, turno: number }) => {
+    // Refresh orders to get updated data from server
   await fetchOrders()
+}
+
+// Fetch orders on component mount
+onMounted(async () => {  
+  try {
+    // First fetch the turni data if not already loaded
+    if (turnoStore.turni.length === 0) {
+      await turnoStore.fetchTurni()
+    }
+
+    // Set initial time range values based on turno data
+    if (turnoStore.turni.length > 0) {
+      const times = turnoTimes.value;
+      startTime.value = times.pickupStart;
+      endTime.value = times.pickupEnd;
+    } else {
+      // Fallback default values
+      startTime.value = '08:00';
+      endTime.value = '15:00';
+    }
+    
+    // Fetch orders
+    await fetchOrders()
+  } catch (err) {
+    console.error("Error in OrdinazioniProf onMounted:", err)
+    error.value = "Errore durante l'inizializzazione del componente"
+    loading.value = false
+  }
 })
 </script>
 

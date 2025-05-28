@@ -35,9 +35,8 @@
 </template>
 
 <script setup lang="ts">
-import { computed, onMounted, ref, watch } from 'vue'
+import { computed } from 'vue'
 import { useOrdiniStore } from '@/stores/Gestione/ordini'
-import { API_CONFIG } from '@/utils/api'
 
 const ordiniStore = useOrdiniStore()
 
@@ -70,28 +69,7 @@ const props = defineProps({
 })
 
 const uniqueProducts = computed<Product[]>(() => {
-  // If we have API data, use that
-  if (productsData.value && productsData.value.length > 0) {
-    // Check if the data has the expected format
-    const isValidFormat = productsData.value.every(product => 
-      typeof product === 'object' && product !== null && 'idProdotto' in product
-    );
-    
-    if (isValidFormat) {
-      return productsData.value.map(product => ({
-        idProdotto: product.idProdotto,
-        nome: product.nome || 'Prodotto senza nome',
-        quantita: product.quantitaOrdinata || 0, // Map to the Product interface
-        prezzo: product.prezzo || 0,
-        preparato: product.tuttiPreparati || false, // Map tuttiPreparati to preparato
-        quantitaOrdinata: product.quantitaOrdinata || 0,
-        tuttiPreparati: product.tuttiPreparati || false,
-        quantitaPreparata: product.quantitaPreparata || 0
-      }));
-    }
-  }
-
-  // Otherwise, fall back to client-side calculation
+  // Always use the filtered orders from props instead of API data
   const products = new Map()
   if (!Array.isArray(props.classOrders)) {
     return []
@@ -106,14 +84,28 @@ const uniqueProducts = computed<Product[]>(() => {
       if (product.idProdotto === undefined) {
         return
       }
-        if (!products.has(product.idProdotto)) {        
-          products.set(product.idProdotto, {
-            idProdotto: product.idProdotto,
-            nome: product.nome,
-            quantita: product.quantita || 0, // Add the quantita property
-            prezzo: product.prezzo,
-            preparato: product.preparato || false
+      
+      if (!products.has(product.idProdotto)) {        
+        products.set(product.idProdotto, {
+          idProdotto: product.idProdotto,
+          nome: product.nome,
+          quantita: product.quantita || 0,
+          prezzo: product.prezzo,
+          preparato: product.preparato || false,
+          quantitaOrdinata: product.quantita || 0,
+          tuttiPreparati: product.preparato || false,
+          quantitaPreparata: product.preparato ? (product.quantita || 0) : 0
         })
+      } else {
+        // If product already exists, aggregate the quantities
+        const existingProduct = products.get(product.idProdotto)
+        existingProduct.quantita += product.quantita || 0
+        existingProduct.quantitaOrdinata += product.quantita || 0
+        if (product.preparato) {
+          existingProduct.quantitaPreparata += product.quantita || 0
+        }
+        existingProduct.tuttiPreparati = existingProduct.quantitaOrdinata === existingProduct.quantitaPreparata
+        existingProduct.preparato = existingProduct.tuttiPreparati
       }
     })
   })
@@ -144,13 +136,7 @@ const getTotalQuantity = (productId: number): number => {
     return 0;
   }
 
-  // First check if we have API data for this product
-  const apiProduct = productsData.value?.find(p => p.idProdotto === productId);
-  if (apiProduct && 'quantitaOrdinata' in apiProduct) {
-    return apiProduct.quantitaOrdinata || 0;
-  }
-
-  // Fallback to client-side calculation if API data isn't available
+  // Always use the filtered orders from props to respect time filtering
   if (!Array.isArray(props.classOrders)) {
     return 0
   }
@@ -173,13 +159,7 @@ const getPreparedQuantity = (productId: number): number => {
     return 0;
   }
   
-  // First check if we have API data for this product
-  const apiProduct = productsData.value?.find(p => p.idProdotto === productId);
-  if (apiProduct && 'quantitaPreparata' in apiProduct) {
-    return apiProduct.quantitaPreparata || 0;
-  }
-
-  // Fallback to client-side calculation if API data isn't available
+  // Always use the filtered orders from props to respect time filtering
   if (!Array.isArray(props.classOrders)) {
     return 0
   }
@@ -208,13 +188,7 @@ const isProductFullyPrepared = (productId: number): boolean => {
     return false;
   }
 
-  // First check if we have API data for this product
-  const apiProduct = productsData.value?.find(p => p.idProdotto === productId);
-  if (apiProduct && 'tuttiPreparati' in apiProduct) {
-    return apiProduct.tuttiPreparati;
-  }
-
-  // Fallback to client-side calculation
+  // Always use the filtered orders from props to respect time filtering
   const totalQuantity = getTotalQuantity(productId)
   const preparedQuantity = getPreparedQuantity(productId)
 
@@ -222,87 +196,6 @@ const isProductFullyPrepared = (productId: number): boolean => {
 }
 
 const emit = defineEmits(['product-marked-as-prepared'])
-
-// Add state for products data from API
-const productsData = ref<{
-  idProdotto: number;
-  nome: string;
-  prezzo: number;
-  descrizione?: string;
-  quantitaOrdinata: number;
-  tuttiPreparati: boolean;
-  quantitaPreparata: number;
-}[]>([]);
-
-// Function to fetch products data from API
-const fetchProductsData = async (turno: number = props.currentTurno) => {
-  try {
-    // Set the date in the store to today
-    const today = new Date();
-    const dateStr = ordiniStore.formatDate(today);
-    ordiniStore.setSelectedDate(dateStr);
-    
-    // Use the store method to fetch class orders
-    await ordiniStore.fetchClassOrders(turno);
-      // Get the class orders from the store
-    const data = ordiniStore.classOrders;
-    
-    // Process the data to ensure it matches the expected format
-    // The API returns orders by class, but we need product details
-    if (Array.isArray(data)) {
-      // Process data to extract product information
-      const productMap = new Map();
-      
-      data.forEach(order => {
-        if (order && Array.isArray(order.prodotti)) {          
-          order.prodotti.forEach((product: { 
-            idProdotto: number; 
-            nome?: string; 
-            prezzo?: number;
-            quantita?: number;
-            preparato?: boolean 
-          }) => {
-            if (product && product.idProdotto) {
-              const existingProduct = productMap.get(product.idProdotto) as Product & {
-                quantitaOrdinata: number;
-                quantitaPreparata: number;
-                tuttiPreparati: boolean;
-              };
-              
-              // Check if the product itself is marked as prepared
-              const isProductPrepared = !!product.preparato;
-              
-              if (existingProduct) {
-                // Update existing product entry
-                existingProduct.quantitaOrdinata += product.quantita || 0;
-                existingProduct.quantitaPreparata += isProductPrepared ? (product.quantita || 0) : 0;
-                existingProduct.tuttiPreparati = (existingProduct.quantitaOrdinata === existingProduct.quantitaPreparata);
-              } else {                
-                // Create new product entry
-                productMap.set(product.idProdotto, {
-                  idProdotto: product.idProdotto,
-                  nome: product.nome,
-                  quantita: product.quantita || 0, // Added for Product interface compatibility
-                  prezzo: product.prezzo || 0,
-                  quantitaOrdinata: product.quantita || 0,
-                  quantitaPreparata: isProductPrepared ? (product.quantita || 0) : 0,
-                  tuttiPreparati: isProductPrepared,
-                  preparato: isProductPrepared
-                });}
-            }
-          });
-        }
-      });
-      
-      productsData.value = Array.from(productMap.values());
-    } else {
-      productsData.value = [];
-    }
-  } catch (error) {
-    // Fall back to client-side calculation if API fails
-    productsData.value = [];
-  }
-};
 // Function to mark a product as prepared
 const markProductPrepared = async (productId: number) => {
   try {
@@ -311,40 +204,17 @@ const markProductPrepared = async (productId: number) => {
       return;
     }
     
-    // Update local API data optimistically for immediate UI feedback
-    if (productsData.value && productsData.value.length > 0) {
-      const productToUpdate = productsData.value.find(p => p.idProdotto === productId);
-      if (productToUpdate) {
-        productToUpdate.quantitaPreparata = productToUpdate.quantitaOrdinata;
-        productToUpdate.tuttiPreparati = true;
-      }
-    }
-    
-    // Update local class orders data optimistically
-    if (Array.isArray(props.classOrders)) {
-      props.classOrders.forEach(order => {
-        if (order && Array.isArray(order.prodotti)) {
-          order.prodotti.forEach(product => {
-            if (product.idProdotto === productId) {
-              product.preparato = true;
-            }
-          });
-        }
-      });
-    }
-    
-    // Emit the event before awaiting the API call
-    emit('product-marked-as-prepared', { productId, turno: props.currentTurno });
-      // Call the API to persist the change
+    // Call the API to persist the change
     try {
       const success = await ordiniStore.markProductAsPrepared(productId, props.currentTurno);
       
-      if (success) {
-        // Refresh the data after marking the product as prepared
-        await fetchProductsData(props.currentTurno);
-      } else {
+      if (!success) {
         throw new Error('Errore durante il processo di preparazione del prodotto');
       }
+      
+      // Emit the event to notify parent component to refresh data
+      emit('product-marked-as-prepared', { productId, turno: props.currentTurno });
+      
     } catch (apiError: any) {
       // Check if this is a 403 error (authorization)
       if (apiError.message && apiError.message.includes('403')) {
@@ -361,15 +231,8 @@ const markProductPrepared = async (productId: number) => {
   }
 };
 
-// Call on mount and when products change
-onMounted(() => {
-  fetchProductsData(props.currentTurno);
-});
-
-// Watch for changes in the currentTurno prop to update the displayed data
-watch(() => props.currentTurno, (newTurno) => {
-  fetchProductsData(newTurno);
-});
+// Note: No longer need to fetch API data on mount or prop changes 
+// since we now use filtered orders from props exclusively
 </script>
 
 <style scoped>
