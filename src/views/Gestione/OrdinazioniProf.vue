@@ -138,11 +138,9 @@ const selectedDate = ref(ordiniStore.selectedDate)
 // Fetch all orders - simplified without retry
 const fetchOrders = async () => {
   if (loading.value) {
-    console.log('Already loading orders, skipping request')
     return
   }
   
-  console.log('Starting fetchOrders')
   loading.value = true
   error.value = ''
   
@@ -162,7 +160,6 @@ const fetchOrders = async () => {
       error.value = ordiniStore.error
     }
     
-    console.log(`Fetched ${professorOrders.value.length} professor orders`)
   } catch (err) {
     console.error('Error in fetchOrders:', err)
     error.value = 'Errore nel caricamento degli ordini'
@@ -284,7 +281,6 @@ const calculateOrderTotal = (order: Order | ClassOrder): number => {
 const markOrderAsPrepared = async (order: ClassOrder) => {
   // Prevent action if already loading
   if (loading.value) {
-    console.log('Already loading, skipping markOrderAsPrepared')
     return
   }
   
@@ -307,9 +303,6 @@ const markOrderAsPrepared = async (order: ClassOrder) => {
         }
         return o
       })
-      
-      // Don't automatically refresh - the store should handle the update
-      console.log('Order marked as prepared successfully')
     } else {
       throw new Error('Errore durante la preparazione dell\'ordine')
     }
@@ -321,20 +314,15 @@ const markOrderAsPrepared = async (order: ClassOrder) => {
 
 // Handler for when a product is marked as prepared
 const handleProductMarkedAsPrepared = async ({ productId, turno }: { productId: number, turno: number }) => {
-  console.log('Product marked as prepared:', productId, 'turno:', turno)
-  
-  // Refresh orders to get updated data from server
+    // Refresh orders to get updated data from server
   await fetchOrders()
 }
 
 // Fetch orders on component mount
-onMounted(async () => {
-  console.log("OrdinazioniProf component mounted")
-  
+onMounted(async () => {  
   try {
     // First fetch the turni data if not already loaded
     if (turnoStore.turni.length === 0) {
-      console.log("Fetching turni data")
       await turnoStore.fetchTurni()
     }
 

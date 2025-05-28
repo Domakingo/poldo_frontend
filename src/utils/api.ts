@@ -33,20 +33,16 @@ export const handleRequest = async <T>(
   timeout = 15000
 ): Promise<T> => {
   const url = `${API_CONFIG.BASE_URL}${endpoint.startsWith('/') ? endpoint : '/' + endpoint}`;
-  console.log(`API Request to: ${url}`, init?.method || 'GET');
 
   try {
-    console.log('Making fetch request with timeout:', timeout);
     const response = await fetchWithTimeout(url, {
       credentials: 'include',
       mode: 'cors',
       ...init
     }, timeout);
-    console.log(`Response received: ${response.status} ${response.statusText}`);
 
     // Handle 204/205 (No Content) responses
     if (response.status === 204 || response.status === 205) {
-      console.log('No content response');
       return undefined as unknown as T;
     }
 
@@ -58,7 +54,6 @@ export const handleRequest = async <T>(
 
     const contentType = response.headers.get('content-type') || '';
     const isJSON = contentType.includes('application/json');
-    console.log(`Content-Type: ${contentType}, isJSON: ${isJSON}`);
 
     if (!isJSON) {
       console.warn(`Unexpected content-type (${contentType}) for ${endpoint}`);
@@ -66,7 +61,6 @@ export const handleRequest = async <T>(
     }
 
     const jsonData = await response.json();
-    console.log(`JSON data received (sample):`, Array.isArray(jsonData) ? `Array with ${jsonData.length} items` : (typeof jsonData === 'object' ? 'Object' : jsonData));
     return jsonData as T;
 
   } catch (error: any) {

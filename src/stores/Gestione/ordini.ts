@@ -63,32 +63,26 @@ export const useOrdiniStore = defineStore('ordini', () => {
   
   // Funzione per recuperare i dati dell'utente
   async function fetchUserById(userId: number) {
-    console.log(`fetchUserById called for user ID: ${userId}`)
     if (userCache.value[userId]) {
-      console.log(`User ${userId} found in cache, returning cached data`)
       return userCache.value[userId]
     }
 
     try {
-      console.log(`Fetching user data for ID: ${userId}`)
       const userData = await handleRequest<any>(
         `utenti/${userId}`,
         `Impossibile recuperare i dati dell'utente con ID ${userId}`
       )
-      console.log(`User data received for ID ${userId}:`, userData)
       userCache.value[userId] = userData
       return userData
     } catch (error) {
-      console.error(`Errore nel recupero dei dati dell'utente con ID ${userId}:`, error)
+      console.error(`Errore nel recupero dei dati dell'utente con ID ${userId}:`, error);
       return null
     }
   }  // Recupera gli ordini dei professori
   async function fetchProfOrders() {
-    console.log('Starting fetchProfOrders in store')
     loading.value = true
     try {      
       let url = `ordini/classi?startDate=${selectedDate.value}&endDate=${selectedDate.value}`;
-      console.log('Fetching URL:', url)
             
       const data = await handleRequest<any[]>(
         url,
@@ -96,7 +90,6 @@ export const useOrdiniStore = defineStore('ordini', () => {
         undefined,
         30000 // 30 seconds timeout
       )
-      console.log('Data received from API:', data)
       
       // Check if data is valid
       if (!data || !Array.isArray(data)) {
@@ -110,13 +103,11 @@ export const useOrdiniStore = defineStore('ordini', () => {
       const professorOrders = data.filter((order: any) => 
         order && order.oraRitiro !== null && order.oraRitiro !== undefined
       );
-      console.log('Filtered professorOrders:', professorOrders)
       
       const processedOrders = []
       
       for (const order of professorOrders) {
         try {
-          console.log('Processing order:', order)
           const processedOrder = {
             ...order,
             prodotti: Array.isArray(order.prodotti) ? order.prodotti : [],
@@ -138,14 +129,12 @@ export const useOrdiniStore = defineStore('ordini', () => {
         }
       }
 
-      console.log('Setting profOrders.value with processedOrders:', processedOrders)
-      profOrders.value = processedOrders
+      profOrders.value = processedOrders;
     } catch (err) {
       console.error('Errore nel recupero degli ordini dei professori:', err)
       error.value = 'Errore nel caricamento degli ordini dei professori.'
       profOrders.value = []
     } finally {
-      console.log('fetchProfOrders finished, setting loading to false')
       loading.value = false
     }
   }    // Recupera gli ordini per classe
@@ -226,9 +215,6 @@ export const useOrdiniStore = defineStore('ordini', () => {
         'Errore nel marcare l\'ordine come preparato',
         { method: 'PUT' }
       )
-      
-      // Don't automatically refetch - the UI state has already been updated
-      console.log('Order marked as prepared successfully in API')
 
       return true
     } catch (error) {
@@ -294,9 +280,6 @@ async function markProductAsPrepared(productId: number, turno: number) {
         headers: {}
       }
     )
-
-    // Don't automatically refetch - the UI state has already been updated
-    console.log('Product marked as prepared successfully in API')
 
     return true
   } catch (error) {
