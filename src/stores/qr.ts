@@ -27,7 +27,6 @@ export const useQRStore = defineStore('qr', () => {
       }
 
       const rawData = await response.json()
-      console.log('rawData', rawData)
 
         const parsed: QR[] = rawData.map((item: any) => ({
           token: item.token,
@@ -36,7 +35,6 @@ export const useQRStore = defineStore('qr', () => {
           totale: item.totale,
         }))
 
-      console.log('QR', parsed)
       return {status: true, qr: parsed}
     } catch (error) {
       console.error('Error fetching QR:', error)

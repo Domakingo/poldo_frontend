@@ -1,28 +1,15 @@
 <template>
   <div class="gestioni-admin-container">
     <h1 class="page-title">Gestione Entità</h1>
-    
+
     <!-- Alert per messaggi di feedback -->
-    <Alert 
-      v-if="alertMessage" 
-      :message="alertMessage" 
-      :type="alertType" 
-      @close="alertMessage = ''" 
-    />    <!-- Barra di ricerca e pulsante per creare una nuova gestione -->
-    <div class="action-header">      <div class="search-container">
+    <Alert v-if="alertMessage" :message="alertMessage" :type="alertType" @close="alertMessage = ''" />
+    <!-- Barra di ricerca e pulsante per creare una nuova gestione -->
+    <div class="action-header">
+      <div class="search-container">
         <div class="search-input-group">
-          <input 
-            type="text" 
-            v-model="searchQuery" 
-            placeholder="Cerca gestione per nome o ID..." 
-            class="search-input"
-          />
-          <button 
-            v-if="searchQuery" 
-            @click="searchQuery = ''" 
-            class="clear-search"
-            title="Cancella ricerca"
-          >
+          <input type="text" v-model="searchQuery" placeholder="Cerca gestione per nome o ID..." class="search-input" />
+          <button v-if="searchQuery" @click="searchQuery = ''" class="clear-search" title="Cancella ricerca">
             ×
           </button>
         </div>
@@ -33,7 +20,7 @@
         </button>
       </div>
     </div>
-    
+
     <!-- Tabella gestioni -->
     <div class="gestioni-list-container">
       <div class="gestioni-scroll-wrapper">
@@ -51,29 +38,21 @@
                 <td>{{ gestione.idGestione }}</td>
                 <td>{{ gestione.nome }}</td>
                 <td class="actions">
-                  <button 
-                    class="btn edit" 
-                    @click="openEditModal(gestione)"
-                  >
+                  <button class="btn edit" @click="openEditModal(gestione)">
                     Modifica
                   </button>
-                  <button 
-                    class="btn delete" 
-                    @click="openDeleteModal(gestione)"
-                  >
+                  <button class="btn delete" @click="openDeleteModal(gestione)">
                     Elimina
                   </button>
-                  <button 
-                    class="btn users" 
-                    @click="openUsersModal(gestione)"
-                  >
+                  <button class="btn users" @click="openUsersModal(gestione)">
                     Utenti
                   </button>
                 </td>
               </tr>
             </tbody>
           </table>
-        </div>        <div v-else-if="gestioni.length > 0" class="no-data">
+        </div>
+        <div v-else-if="gestioni.length > 0" class="no-data">
           <p>Nessuna gestione trovata con il criterio di ricerca.</p>
         </div>
         <div v-else class="no-data">
@@ -93,26 +72,14 @@
           <form @submit.prevent="handleSubmit">
             <div class="form-group">
               <label for="nome-gestione">Nome Gestione:</label>
-              <input
-                id="nome-gestione"
-                v-model="formData.nome"
-                type="text"
-                placeholder="Inserisci il nome della gestione"
-                required
-              />
+              <input id="nome-gestione" v-model="formData.nome" type="text"
+                placeholder="Inserisci il nome della gestione" required />
             </div>
-              <div v-if="modalMode === 'create'" class="form-group">
+            <div v-if="modalMode === 'create'" class="form-group">
               <label for="utente-id">Utente Associato (opzionale):</label>
-              <select
-                id="utente-id"
-                v-model="formData.utenteId"
-              >
+              <select id="utente-id" v-model="formData.utenteId">
                 <option value="">Nessuno</option>
-                <option 
-                  v-for="user in availableUsers" 
-                  :key="user.id" 
-                  :value="user.id"
-                >
+                <option v-for="user in availableUsers" :key="user.id" :value="user.id">
                   {{ user.name }}
                 </option>
               </select>
@@ -121,11 +88,7 @@
         </div>
         <div class="modal-footer">
           <button class="btn cancel" @click="closeModal">Annulla</button>
-          <button 
-            class="btn save" 
-            @click="handleSubmit"
-            :disabled="!formData.nome || isLoading"
-          >
+          <button class="btn save" @click="handleSubmit" :disabled="!formData.nome || isLoading">
             {{ isLoading ? 'Salvataggio...' : 'Salva' }}
           </button>
         </div>
@@ -150,11 +113,7 @@
         </div>
         <div class="modal-footer">
           <button class="btn cancel" @click="closeModal">Annulla</button>
-          <button 
-            class="btn delete" 
-            @click="handleDelete"
-            :disabled="isLoading"
-          >
+          <button class="btn delete" @click="handleDelete" :disabled="isLoading">
             {{ isLoading ? 'Eliminazione...' : 'Elimina' }}
           </button>
         </div>
@@ -173,24 +132,13 @@
           <div class="add-user-form">
             <h3>Aggiungi Utente</h3>
             <div class="form-group">
-              <label for="new-user-id">Seleziona Utente:</label>              <select
-                id="new-user-id"
-                v-model="newUserId"
-              >
+              <label for="new-user-id">Seleziona Utente:</label> <select id="new-user-id" v-model="newUserId">
                 <option value="">Seleziona un utente</option>
-                <option 
-                  v-for="user in availableUsers" 
-                  :key="user.id" 
-                  :value="user.id"
-                >
+                <option v-for="user in availableUsers" :key="user.id" :value="user.id">
                   {{ user.name }}
                 </option>
               </select>
-              <button 
-                class="btn add" 
-                @click="addUserToGestione"
-                :disabled="!newUserId || isLoading"
-              >
+              <button class="btn add" @click="addUserToGestione" :disabled="!newUserId || isLoading">
                 Aggiungi
               </button>
             </div>
@@ -214,10 +162,7 @@
                   <td>{{ user.mail }}</td>
                   <td>{{ user.ruolo }}</td>
                   <td class="actions">
-                    <button 
-                      class="btn delete" 
-                      @click="removeUser(user.idUtente)"
-                    >
+                    <button class="btn delete" @click="removeUser(user.idUtente)">
                       Rimuovi
                     </button>
                   </td>
@@ -240,13 +185,9 @@
 <script setup lang="ts">
 import { ref, reactive, onMounted, computed } from 'vue';
 import Alert from '@/components/Alert.vue';
-import { useGestioneStore } from '@/stores/gestioni';
-import { useUserStore } from '@/stores/users';
+import { useGestioneStore, Gestione } from '@/stores/Admin/gestioni';
+import { useUserStore, User } from '@/stores/Admin/users';
 import { useAuthStore } from '@/stores/auth';
-
-// Import types from stores
-import type { User } from '@/stores/users';
-import type { Gestione } from '@/stores/gestioni';
 
 // Stores
 const gestioneStore = useGestioneStore();
@@ -258,7 +199,7 @@ const showModal = ref(false);
 const alertMessage = ref('');
 const alertType = ref<'success' | 'error'>('success');
 const newUserId = ref<number | string>('');
-const availableUsers = ref<{id: number, name: string}[]>([]);
+const availableUsers = ref<{ id: number, name: string }[]>([]);
 const searchQuery = ref('');
 
 // Reactive form data
@@ -279,8 +220,8 @@ const filteredGestioni = computed(() => {
     return gestioni.value;
   }
   const query = searchQuery.value.toLowerCase().trim();
-  return gestioni.value.filter(gestione => 
-    gestione.nome.toLowerCase().includes(query) || 
+  return gestioni.value.filter(gestione =>
+    gestione.nome.toLowerCase().includes(query) ||
     gestione.idGestione.toString().includes(query)
   );
 });
@@ -291,12 +232,12 @@ onMounted(async () => {
   try {
     const authStore = useAuthStore();
     await authStore.checkAuth();
-    
+
     if (!authStore.user) {
       showAlert('Utente non autenticato. Effettuare il login.', 'error');
       return;
     }
-    
+
     await fetchGestioni();
   } catch (error: any) {
     console.error('Auth check failed:', error);
@@ -322,7 +263,7 @@ const openCreateModal = async () => {
   formData.nome = '';
   formData.utenteId = '';
   showModal.value = true;
-  
+
   // Load users for dropdown
   isLoading.value = true;
   try {
@@ -357,23 +298,23 @@ const openDeleteModal = (gestione: Gestione) => {
 const openUsersModal = async (gestione: Gestione) => {
   modalMode.value = 'users';
   selectedGestione.value = gestione;
-  
+
   showModal.value = true;
   isLoading.value = true;
-  
+
   try {
     // Fetch all users for the dropdown
     await userStore.fetchUsers();
-    
+
     try {
       // Use the new endpoint to fetch users associated with this gestione
       await gestioneStore.fetchGestioneUsers(gestione.idGestione);
-      
+
       // Convert GestioneUser to User type by merging with existing users from userStore
       const gestioneUserIds = gestioneStore.gestioneUsers.map(u => u.idUtente);
-      
+
       // Filter users from userStore that match IDs from gestione users
-      gestioneUsers.value = userStore.users.filter(user => 
+      gestioneUsers.value = userStore.users.filter(user =>
         gestioneUserIds.includes(user.idUtente)
       );
     } catch (fetchError: any) {
@@ -382,7 +323,7 @@ const openUsersModal = async (gestione: Gestione) => {
       gestioneUsers.value = [];
       showAlert(`Errore nel recupero degli utenti della gestione: ${fetchError.message}`, 'error');
     }
-    
+
     // Update the dropdown options for adding users - exclude those already in the gestione
     const associatedUserIds = gestioneUsers.value.map((u) => u.idUtente);
     availableUsers.value = userStore.users
@@ -411,7 +352,7 @@ const handleSubmit = async () => {
   try {
     if (modalMode.value === 'create') {
       const result = await gestioneStore.createGestione(
-        formData.nome, 
+        formData.nome,
         formData.utenteId ? parseInt(formData.utenteId) : undefined
       );
       if (result) {
@@ -437,7 +378,7 @@ const handleSubmit = async () => {
 
 const handleDelete = async () => {
   if (!selectedGestione.value) return;
-  
+
   isLoading.value = true;
   try {
     const result = await gestioneStore.deleteGestione(selectedGestione.value.idGestione);
@@ -454,7 +395,7 @@ const handleDelete = async () => {
 
 const addUserToGestione = async () => {
   if (!newUserId.value || !selectedGestione.value) return;
-  
+
   isLoading.value = true;
   try {
     const result = await gestioneStore.addUserToGestione(
@@ -464,7 +405,7 @@ const addUserToGestione = async () => {
     if (result) {
       showAlert('Utente aggiunto con successo', 'success');
       newUserId.value = '';
-      
+
       // Refresh the users list using the new endpoint
       if (selectedGestione.value) {
         // Re-open the modal to refresh the data
@@ -480,7 +421,7 @@ const addUserToGestione = async () => {
 
 const removeUser = async (utenteId: number) => {
   if (!selectedGestione.value) return;
-  
+
   isLoading.value = true;
   try {
     const result = await gestioneStore.removeUserFromGestione(
@@ -504,7 +445,7 @@ const removeUser = async (utenteId: number) => {
 const showAlert = (message: string, type: 'success' | 'error' = 'success') => {
   alertMessage.value = message;
   alertType.value = type;
-  
+
   // Auto-hide the alert after 5 seconds
   setTimeout(() => {
     alertMessage.value = '';
@@ -604,7 +545,8 @@ table {
   border-collapse: collapse;
 }
 
-th, td {
+th,
+td {
   padding: 12px 15px;
   text-align: left;
   border-bottom: 1px solid #eee;
@@ -786,7 +728,7 @@ tr:hover {
     flex-direction: column;
     gap: 5px;
   }
-  
+
   .btn {
     width: 100%;
     margin-bottom: 2px;

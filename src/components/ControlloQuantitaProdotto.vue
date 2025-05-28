@@ -13,9 +13,11 @@ const props = defineProps({
     },
     delete: {
         type: Boolean,
-        default: true 
+        default: true
     }
 })
+
+console.log("bbbbbb", props.disabled)
 
 const cartStore = useCartStore()
 
@@ -25,7 +27,7 @@ const currentQuantity = computed(() => {
 })
 
 const handleQuantityChange = (delta: number) => {
-    if (props.disabled) return 
+    if (props.disabled) return
     const newQuantity = currentQuantity.value + delta
 
     if (newQuantity <= 0) {
@@ -36,7 +38,7 @@ const handleQuantityChange = (delta: number) => {
 }
 
 const removeItem = () => {
-    if (props.disabled) return 
+    if (props.disabled) return
     cartStore.removeFromCart(props.productId)
 }
 </script>
@@ -51,7 +53,7 @@ const removeItem = () => {
                 <path d="M8 6V4c0-1 1-2 2-2h4c1 0 2 1 2 2v2" />
             </svg>
         </button>
-        <button class="quantity-btn minus" :class="{ 'disabled': currentQuantity === 0 }"
+        <button class="quantity-btn minus" :class="{ 'deactivated': currentQuantity === 0 }"
             @click.stop="handleQuantityChange(-1)" :disabled="currentQuantity === 0">
             -
         </button>
@@ -71,7 +73,7 @@ const removeItem = () => {
 }
 
 .disabled {
-    display: none;
+    display: none !important;
 }
 
 .quantity-btn {
@@ -99,11 +101,6 @@ const removeItem = () => {
     background-color: var(--poldo-red);
 }
 
-.quantity-btn.minus.disabled {
-    background-color: var(--disabled);
-    cursor: not-allowed;
-}
-
 .quantity-btn.delete {
     background-color: var(--poldo-accent);
     color: var(--poldo-text);
@@ -115,7 +112,7 @@ const removeItem = () => {
 
 .quantity-btn:disabled,
 .quantity-btn.disabled {
-    background-color: var(--color-background-mute) !important;
+    background-color: var(--disabled) !important;
     cursor: not-allowed;
     opacity: 0.7;
 }
@@ -124,13 +121,5 @@ const removeItem = () => {
 .quantity-btn.disabled:hover {
     filter: none;
     transform: none;
-}
-
-.quantity-btn.minus.disabled {
-    background-color: var(--color-background-mute) !important;
-}
-
-.quantity-btn.plus.disabled {
-    background-color: var(--color-background-mute) !important;
 }
 </style>

@@ -12,8 +12,15 @@ export interface Product {
   quantity: number
   disponibility: number
   tags: string[]
-  isActive: boolean,
+  isActive: boolean
   bevanda: boolean
+  ownerID: number
+}
+
+const API_CONFIG = {
+  BASE_URL: 'http://figliolo.it:5006/v1',
+  TOKEN: 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZEdlc3Rpb25lIjoxLCJydW9sbyI6Imdlc3RvcmUiLCJpZCI6MTksImlhdCI6MTc0NDMwNzg0MiwiZXhwIjoxNzc1ODY1NDQyfQ.HMNTe1h81A80p-BawzVj44zSBGBVMYZRdp_vDxE2j9k',
+  DEFAULT_IMAGE: 'http://figliolo.it:5006/v1/prodotti/image/-1'
 }
 
 async function handleRequest<T>(
@@ -66,18 +73,16 @@ export const useProductsStore = defineStore('products', () => {
   })
 
 
-   const initializeProducts = async () => {
+  const initializeProducts = async () => {
     try {
-
-
       const raw = await handleRequest<any[]>(
         'prodotti',
         'Errore fetch prodotti'
-      )
+      );
 
       products.value = await Promise.all(raw.map(async (item) => {
-        const productImageUrl = `${API_CONFIG.BASE_URL}/prodotti/image/${item.idProdotto}`
-        const imageExists = await checkImageExists(productImageUrl)
+        const productImageUrl = `${API_CONFIG.BASE_URL}/prodotti/image/${item.idProdotto}`;
+        const imageExists = await checkImageExists(productImageUrl);
 
         return {
           id: item.idProdotto,
@@ -90,14 +95,19 @@ export const useProductsStore = defineStore('products', () => {
           disponibility: item.disponibilita,
           tags: item.tags,
           isActive: item.attivo === 1,
-          bevanda: item.bevanda === 1
+          bevanda: item.bevanda === 1,
+          ownerID: item.proprietario
         }
       }))
     } catch (err) {
-      console.error(err)
-      throw err
+      console.error("Errore durante l'inizializzazione dei prodotti:", {
+        message: err instanceof Error ? err.message : String(err),
+        stack: err instanceof Error ? err.stack : null,
+        context: "Funzione initializeProducts",
+      });
+      throw err;
     }
-  }
+  };
 
   async function checkImageExists(url: string): Promise<boolean> {
     try {

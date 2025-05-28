@@ -6,6 +6,7 @@ import QuantityControl from '@/components/ControlloQuantitaProdotto.vue'
 import type { OrdineClasse } from '@/stores/cartClasse'
 import QRModal from '@/components/QRModal.vue'
 import { useAuthStore } from '@/stores/auth'
+import Timer from '@/components/TimerConferma.vue'
 
 
 import { computed, ref, onMounted, watch } from 'vue'
@@ -30,14 +31,15 @@ const haveCartClasseConf = ref<true | false>(false)
 
 const showQRModal = ref(false)
 
+const showTimePicker = ref(false)
+const selectedTime = ref('')
+
 const allProducts = computed(() => productsStore.products)
-console.log('allProducts', allProducts.value)
 
 const items = computed(() => cartStore.getItems())
 
 async function getCart() {
     const cart = await cartStore.getOrdineByTurno()
-    console.log('cart', cart)
     haveCart.value = cart === true
 }
 
@@ -51,8 +53,6 @@ const itemsDetails = computed(() => {
         }
     })
 })
-
-console.log('itemsDetails', itemsDetails.value)
 
 const hasItems = computed(() => items.value.length > 0)
 
@@ -76,7 +76,11 @@ const checkout= () => {
     if(selectedMacro.value === 'classe') {
         checkoutClasse();
     } else {
-        checkoutPersonale();
+        if(authStore.user?.ruolo === 'prof') {
+            checkoutProf();
+        } else {
+            checkoutPersonale();
+        }
     }
 }
 
@@ -90,6 +94,10 @@ const checkoutPersonale = () => {
     showCheckoutAlert.value = true
 }
 
+const checkoutProf = () => {
+    showTimePicker.value = true
+}
+
 const clearCart = () => {
     cartStore.clearCart()
 }
@@ -97,42 +105,36 @@ const clearCart = () => {
 const confermaOrdineAlert = async () => {
     showCheckoutAlert.value = false
     if (selectedMacro.value === 'classe') {
-        console.log('confirmOdrClasse')
+
         const risp = await cartClasseStore.confOrdClasse()
         fetchOrdineClasse()
         altertype.value = risp ? 'success' : 'error'
         checkoutAlertMessage.value = risp ? 'Ordine di classe confermato!' : 'Errore durante la conferma dell\'ordine di classe'
         showCheckoutAlert.value = true
     } else {
-        console.log('confirmOdrPersonale')
         const risp = await cartStore.confirmCart()
         fetchOrdineClasse()
         altertype.value = risp.ok ? 'success' : 'error'
         checkoutAlertMessage.value = risp.message
         showCheckoutAlert.value = true
     }
+    cartStore.getOrdineByTurno().then((cart) => {
+        haveCart.value = cart === true
+    })
 }
 
 const cancelOdr = () => {
-    console.log('noconfOdr')
     showCheckoutAlert.value = false
 }
 
 const closeAlert = () => {
-    console.log('closeAlert')
     showCheckoutAlert.value = false
     altertype.value = 'confirm'
 }
 
 const selectedMacro = ref<'personale' | 'classe'>('personale')
 
-
-
-
-
-
 watch(ordineClasse, (newVal) => {
-    console.log('watch ordineClasse', newVal)
     if(newVal) {
         haveCartClasseConf.value = newVal.confermato
         isconf.value = newVal.ordine.map(o => ({
@@ -142,25 +144,42 @@ watch(ordineClasse, (newVal) => {
     }else{
         haveCartClasseConf.value =  false
     }
-    
-}, { deep: true })
 
+}, { deep: true })
 
 async function fetchOrdineClasse() {
   try {
     const result = await cartClasseStore.getOrdine()
     ordineClasse.value = result.status ? result.ordine : null
   } catch (error) {
-    console.error("Errore nel fetch ordine classe:", error)
     ordineClasse.value = null
   }
+}
+
+
+async function handleConfirmTimer() {
+    showTimePicker.value = false
+    console.log('confirmOdrPersonaleProf')
+    console.log('selectedTime.value', selectedTime.value+':00')
+    const risp = await cartStore.confirmCart(selectedTime.value+':00')
+    fetchOrdineClasse()
+    altertype.value = risp.ok ? 'success' : 'error'
+    checkoutAlertMessage.value = risp.message
+    showCheckoutAlert.value = true
+}
+
+
+async function deleteOrdine(){
+    const risp = await cartStore.deleteChar()
+    fetchOrdineClasse()
+    altertype.value = risp.ok ? 'success' : 'error'
+    checkoutAlertMessage.value = risp.message
+    showCheckoutAlert.value = true
 }
 
 onMounted(async () => {
     fetchOrdineClasse();
 })
-
-
 
 async function switchOrdineSingolo(id: number, status: boolean) {
     const res = await cartClasseStore.confOrd(id, status)
@@ -176,6 +195,12 @@ getCart();
     <div class="carrello">
         <Alert v-if="showCheckoutAlert" :type="altertype" :message="checkoutAlertMessage" @confirm="confermaOrdineAlert"
             @cancel="cancelOdr" @close="closeAlert" />
+        <Timer
+            v-if="showTimePicker"
+            v-model="selectedTime"
+            @confirm="handleConfirmTimer"
+            @cancel="showTimePicker = false"
+        />
 
         <div v-if="isNotStudente"class="category-switch">
 
@@ -195,7 +220,8 @@ getCart();
                         <path
                             d="M16 11C17.66 11 18.99 9.66 18.99 8S17.66 5 16 5C14.34 5 13 6.34 13 8S14.34 11 16 11M8 11C9.66 11 10.99 9.66 10.99 8S9.66 5 8 5C6.34 5 5 6.34 5 8S6.34 11 8 11M8 13C5.67 13 1 14.17 1 16.5V18H15V16.5C15 14.17 10.33 13 8 13M16 13C15.71 13 15.38 13.03 15.03 13.05C16.19 13.89 17 15.02 17 16.5V18H23V16.5C23 14.17 18.33 13 16 13Z" />
                     </svg>
-                    <span>Classe</span>
+                    <span v-if="authStore.user!== null && authStore.user.ruolo==='prof'">Ordinato</span>
+                    <span v-else>Classe</span>
                 </button>
             </div>
         </div>
@@ -244,7 +270,7 @@ getCart();
                 </div>
                 <div class="summary-actions">
                     <button class="checkout-btn" @click="checkout" :disabled="haveCart">Procedi all'ordine</button>
-                    <button v-if="haveCart" class="checkout-btn">Elimina oridine</button>
+                    <button v-if="haveCart" @click="deleteOrdine" class="checkout-btn">Elimina oridine</button>
                     <button class="clear-btn" @click="clearCart">Svuota carrello</button>
                     <button class="continue-btn" @click="continueShopping">Continua lo shopping</button>
                 </div>
@@ -270,7 +296,7 @@ getCart();
                             <div>
                                 <span class="giallo">{{ ordine.user.nome }}</span><span> : €{{ ordine.totale }}</span>
                             </div>
-                            <div class="switch-container">
+                            <div v-if="authStore.user!== null && authStore.user.ruolo!=='prof'" class="switch-container">
                                 <button class="switch-btn"
                                     :class="{ active: isconf.find(o => o.id === ordine.idOrdine)?.isConf }"
                                     @click="switchOrdineSingolo(ordine.idOrdine, true)">

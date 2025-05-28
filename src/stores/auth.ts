@@ -23,17 +23,18 @@ export const useAuthStore = defineStore('auth', () => {
       method: 'GET',
       credentials: 'include'
     });
-    
+
     if (!checkResponse.ok) {
       console.error('User not authenticated');
       logout();
       return false;
     }
-    
+
     const checkData = await checkResponse.json();
     loading.value = false;
     isAuthenticated.value = true;
-      const userData: User = {
+
+    const userData: User = {
       nome: checkData.nome,
       foto: checkData.foto_url,
       ruolo: checkData.ruolo,
@@ -41,7 +42,7 @@ export const useAuthStore = defineStore('auth', () => {
     };
     user.value = userData;
     return true;
-    
+
   } catch (error) {
     logout()
     return false

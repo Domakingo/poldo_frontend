@@ -4,10 +4,11 @@ import { useProductsStore } from '@/stores/products'
 import { useRouter } from 'vue-router'
 import CardGrid from '@/components/CardGrid.vue'
 import CardProdotto from '@/components/CardProdotto.vue'
-import Filtri from '@/components/Filtri.vue'
+import FiltriProdotti from '@/components/FiltriProdotti.vue'
 import SearchBar from '@/components/SearchBar.vue'
 import { useCartStore } from '@/stores/cart'
 import { useFavoritesStore } from '@/stores/favorites'
+import OrdinamentoProdotti from '@/components/OrdinamentoProdotti.vue'
 
 const router = useRouter()
 const productsStore = useProductsStore()
@@ -16,6 +17,20 @@ const favoritesStore = useFavoritesStore()
 const searchQuery = ref('')
 
 const haveCart = ref(false)
+
+// Opzioni per l'ordinamento
+const opzioniOrdinamento = [
+  { valore: 'nome', etichetta: 'Nome' },
+  { valore: 'gestione', etichetta: 'Gestione' },
+  { valore: 'prezzo_crescente', etichetta: '€ ↑' },
+  { valore: 'prezzo_decrescente', etichetta: '€ ↓' },
+]
+
+const ordinamento = ref('nome')
+
+const handleOrdinamento = (nuovoOrdine: string) => {
+  ordinamento.value = nuovoOrdine
+}
 
 const favoriteProducts = computed(() => {
   return searchResults.value.filter(p => favoritesStore.isFavorite(p.id))
@@ -66,10 +81,24 @@ const filteredProducts = computed(() => {
 
 const searchResults = computed(() => {
   const q = searchQuery.value.toLowerCase()
-  return filteredProducts.value.filter(p =>
+  let risultati = filteredProducts.value.filter(p =>
     p.title.toLowerCase().includes(q) ||
     p.description.toLowerCase().includes(q)
   )
+
+  // Applica l'ordinamento
+  switch (ordinamento.value) {
+    case 'nome':
+      return risultati.sort((a, b) => a.title.localeCompare(b.title))
+    case 'gestione':
+      return risultati.sort((a, b) => a.ownerID - b.ownerID)
+    case 'prezzo_crescente':
+      return risultati.sort((a, b) => a.price - b.price)
+    case 'prezzo_decrescente':
+      return risultati.sort((a, b) => b.price - a.price)
+    default:
+      return risultati
+  }
 })
 
 // Mobile layout
@@ -101,15 +130,17 @@ const groupedByMacro = computed(() => {
 })
 
 async function getCart() {
-    const cart = await cartStore.getOrdineByTurno()
-    haveCart.value = cart === true
+  const cart = await cartStore.getOrdineByTurno()
+  haveCart.value = cart === true
 }
 
 const onResize = () => isMobile.value = window.innerWidth <= 768
 onMounted(() => window.addEventListener('resize', onResize))
 onUnmounted(() => window.removeEventListener('resize', onResize))
+onMounted(() => {
+    getCart()
+})
 
-getCart()
 </script>
 
 <template>
@@ -136,6 +167,8 @@ getCart()
         </div>
       </div>
     </div>
+
+    <OrdinamentoProdotti :opzioni="opzioniOrdinamento" :modello="ordinamento" @cambia-ordine="handleOrdinamento" />
 
     <div class="prodotti-container">
       <div v-if="searchResults.length === 0" class="no-results">
@@ -173,14 +206,13 @@ getCart()
       </template>
     </div>
 
-    <Filtri :ingredients="productsStore.allIngredients" :tags="productsStore.allTags" :maxPrice="maxPrice"
+    <FiltriProdotti :ingredients="productsStore.allIngredients" :tags="productsStore.allTags" :maxPrice="maxPrice"
       :minPrice="minPrice" @filters-applied="handleFiltersApplied" />
 
     <button class="cart-button" @click="router.push('/carrello')">
-      <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24">
-        <circle cx="9" cy="21" r="1" />
-        <circle cx="20" cy="21" r="1" />
-        <path d="M1 1h4l2.68 13.39a2 2 0 0 0 2 1.61h9.72a2 2 0 0 0 2-1.61L23 6H6" />
+      <svg xmlns="http://www.w3.org/2000/svg" height="30px" viewBox="0 -960 960 960" width="30px" fill="#000000">
+        <path
+          d="M280-80q-33 0-56.5-23.5T200-160q0-33 23.5-56.5T280-240q33 0 56.5 23.5T360-160q0 33-23.5 56.5T280-80Zm400 0q-33 0-56.5-23.5T600-160q0-33 23.5-56.5T680-240q33 0 56.5 23.5T760-160q0 33-23.5 56.5T680-80ZM246-720l96 200h280l110-200H246Zm-38-80h590q23 0 35 20.5t1 41.5L692-482q-11 20-29.5 31T622-440H324l-44 80h480v80H280q-45 0-68-39.5t-2-78.5l54-98-144-304H40v-80h130l38 80Zm134 280h280-280Z" />
       </svg>
     </button>
   </div>
@@ -274,6 +306,10 @@ getCart()
 
 .favorites-section {
   margin-bottom: 2rem;
+}
+
+.ordinamento-container {
+  align-self: center;
 }
 
 .prodotti {
