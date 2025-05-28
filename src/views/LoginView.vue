@@ -1,6 +1,6 @@
 <script setup lang="ts">
 const signInWithGoogle = () => {
-  window.location.href = 'https://figliolo.it:5007/v1/auth/google'
+  window.location.href = 'http://figliolo.it:5006/v1/auth/google'
 
   // Listener per il messaggio di successo
   window.addEventListener('message', (event) => {

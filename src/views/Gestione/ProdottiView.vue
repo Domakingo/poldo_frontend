@@ -130,6 +130,7 @@ const saveAllChanges = async () => {
     ]);
   } finally {
     pendingChangesStore.clearAllChanges();
+    window.location.reload();
   }
 };
 

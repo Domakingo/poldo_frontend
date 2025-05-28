@@ -23,7 +23,7 @@ const newProduct = ref({
   tags: [] as string[],
   isActive: true,
   imageFile: null as File | null,
-  // Correzione: usa ownerID invece di idGestione
+  bevanda: false,
   ownerID: authStore.user?.ruolo === 'admin' ? null : authStore.user?.idGestione
 })
 
@@ -34,11 +34,10 @@ const isAdmin = computed(() => authStore.user?.ruolo === 'admin')
 const showGestioneSelect = computed(() => isAdmin.value && gestioniStore.gestioni.length > 0)
 const isFormValid = computed(() => {
   return newProduct.value.title.trim() &&
-         newProduct.value.description.trim() &&
-         newProduct.value.price > 0 &&
-         newProduct.value.quantity > 0 &&
-         // Correzione: controlla ownerID invece di idGestione
-         (!isAdmin.value || newProduct.value.ownerID !== null)
+    newProduct.value.description.trim() &&
+    newProduct.value.price > 0 &&
+    newProduct.value.quantity > 0 &&
+    (!isAdmin.value || newProduct.value.ownerID !== null)
 })
 
 onMounted(async () => {
@@ -67,7 +66,7 @@ const submitProduct = async () => {
 
     await productsStore.addProduct({
       ...newProduct.value,
-      imageSrc: imagePreview.value || 'https://figliolo.it:5007/v1/prodotti/image/-1',
+      imageSrc: imagePreview.value || 'http://figliolo.it:5006/v1/prodotti/image/-1',
       ownerID: newProduct.value.ownerID as number
     })
 
@@ -93,12 +92,7 @@ const submitProduct = async () => {
         <button type="button" class="cancel-button" @click="router.push('/gestione/prodotti')">
           Annulla
         </button>
-        <button
-          type="submit"
-          class="submit-button"
-          form="productForm"
-          :disabled="!isFormValid || isSubmitting"
-        >
+        <button type="submit" class="submit-button" form="productForm" :disabled="!isFormValid || isSubmitting">
           <span v-if="isSubmitting">Salvataggio...</span>
           <span v-else>Crea</span>
         </button>
@@ -111,17 +105,10 @@ const submitProduct = async () => {
           <div class="form-column">
             <div class="form-group" v-if="showGestioneSelect">
               <label>Gestione *</label>
-              <select
-                v-model="newProduct.ownerID"
-                required
-                class="gestione-select"
-              >
+              <select v-model="newProduct.ownerID" required class="gestione-select">
                 <option :value="null" disabled>Seleziona gestione</option>
-                <option
-                  v-for="gestione in gestioniStore.gestioni"
-                  :key="gestione.idGestione"
-                  :value="gestione.idGestione"
-                >
+                <option v-for="gestione in gestioniStore.gestioni" :key="gestione.idGestione"
+                  :value="gestione.idGestione">
                   {{ gestione.nome }}
                 </option>
               </select>
@@ -129,52 +116,40 @@ const submitProduct = async () => {
 
             <div class="form-group">
               <label>Nome *</label>
-              <input
-                v-model="newProduct.title"
-                type="text"
-                required
-                placeholder="Es. Panino con tonno"
-              />
+              <input v-model="newProduct.title" type="text" required placeholder="Es. Panino con tonno" />
             </div>
 
             <div class="form-group">
               <label>Descrizione *</label>
-              <textarea
-                v-model="newProduct.description"
-                required
-                placeholder="Descrivi il prodotto..."
-                rows="3"
-              />
+              <textarea v-model="newProduct.description" required placeholder="Descrivi il prodotto..." rows="3" />
             </div>
 
             <div class="form-row">
               <div class="form-group">
                 <label>Prezzo (€) *</label>
-                <input
-                  v-model.number="newProduct.price"
-                  type="number"
-                  min="0"
-                  step="0.01"
-                  required
-                  placeholder="0.00"
-                />
+                <input v-model.number="newProduct.price" type="number" min="0" step="0.01" required
+                  placeholder="0.00" />
               </div>
 
               <div class="form-group">
                 <label>Quantità *</label>
-                <input
-                  v-model.number="newProduct.quantity"
-                  type="number"
-                  min="0"
-                  required
-                  placeholder="0"
-                />
+                <input v-model.number="newProduct.quantity" type="number" min="0" required placeholder="0" />
               </div>
+            </div>
 
+            <div class="form-row">
               <div class="form-group">
                 <label>Attivo</label>
                 <label class="switch">
                   <input v-model="newProduct.isActive" type="checkbox" />
+                  <span class="slider"></span>
+                </label>
+              </div>
+
+              <div class="form-group">
+                <label>Bevanda</label>
+                <label class="switch">
+                  <input v-model="newProduct.bevanda" type="checkbox" />
                   <span class="slider"></span>
                 </label>
               </div>
@@ -210,12 +185,8 @@ const submitProduct = async () => {
               <ul v-if="filtersStore.allIngredients.length > 0">
                 <li v-for="ingredient in filtersStore.allIngredients" :key="ingredient">
                   <label class="ingredient-item">
-                    <input
-                      type="checkbox"
-                      :value="ingredient"
-                      v-model="newProduct.ingredients"
-                      :disabled="isSubmitting"
-                    />
+                    <input type="checkbox" :value="ingredient" v-model="newProduct.ingredients"
+                      :disabled="isSubmitting" />
                     {{ ingredient }}
                   </label>
                 </li>
@@ -230,12 +201,7 @@ const submitProduct = async () => {
               <ul v-if="filtersStore.allTags.length > 0">
                 <li v-for="tag in filtersStore.allTags" :key="tag">
                   <label class="tag-item">
-                    <input
-                      type="checkbox"
-                      :value="tag"
-                      v-model="newProduct.tags"
-                      :disabled="isSubmitting"
-                    />
+                    <input type="checkbox" :value="tag" v-model="newProduct.tags" :disabled="isSubmitting" />
                     {{ tag }}
                   </label>
                 </li>
@@ -497,11 +463,11 @@ input[type="checkbox"] {
   border-radius: 50%;
 }
 
-input:checked + .slider {
+input:checked+.slider {
   background-color: var(--poldo-primary);
 }
 
-input:checked + .slider:before {
+input:checked+.slider:before {
   transform: translateX(20px);
 }
 
@@ -584,7 +550,9 @@ input:checked + .slider:before {
     justify-content: space-between;
   }
 
-  .back-button, .cancel-button, .submit-button {
+  .back-button,
+  .cancel-button,
+  .submit-button {
     font-size: 0.85rem;
     padding: 0.5rem 0.8rem;
   }

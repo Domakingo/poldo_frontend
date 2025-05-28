@@ -49,7 +49,10 @@ export const useFiltersStore = defineStore('filters', () => {
       await fetch(`${API_CONFIG.BASE_URL}/ingredienti`, {
         method: 'POST',
         credentials: 'include',
-        body: JSON.stringify({ nomeIngrediente: name.trim() })
+        body: JSON.stringify({ nomeIngrediente: name.trim() }),
+        headers: {
+          'Content-Type': 'application/json'
+        }
       })
       await fetchIngredients()
     } catch (err) {
@@ -63,7 +66,10 @@ export const useFiltersStore = defineStore('filters', () => {
       await fetch(`${API_CONFIG.BASE_URL}/tag`, {
         method: 'POST',
         credentials: 'include',
-        body: JSON.stringify({ nomeTag: name.trim() })
+        body: JSON.stringify({ nomeTag: name.trim() }),
+        headers: {
+          'Content-Type': 'application/json'
+        }
       })
       await fetchTags()
     } catch (err) {
@@ -77,7 +83,10 @@ export const useFiltersStore = defineStore('filters', () => {
       await fetch(`${API_CONFIG.BASE_URL}/ingredienti/${encodeURIComponent(oldName)}`, {
         method: 'PUT',
         credentials: 'include',
-        body: JSON.stringify({ nuovoNome: newName.trim() })
+        body: JSON.stringify({ nuovoNome: newName.trim() }),
+        headers: {
+          'Content-Type': 'application/json'
+        }
       })
       await fetchIngredients()
     } catch (err) {
@@ -91,7 +100,10 @@ export const useFiltersStore = defineStore('filters', () => {
       await fetch(`${API_CONFIG.BASE_URL}/tag/${encodeURIComponent(oldName)}`, {
         method: 'PUT',
         credentials: 'include',
-        body: JSON.stringify({ nuovoNome: newName.trim() })
+        body: JSON.stringify({ nuovoNome: newName.trim() }),
+        headers: {
+          'Content-Type': 'application/json'
+        }
       })
       await fetchTags()
     } catch (err) {

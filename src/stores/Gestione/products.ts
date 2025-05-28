@@ -116,7 +116,7 @@ export const useGestioneProductsStore = defineStore('gestioneProducts', () => {
       formData.append('quantita', newProduct.quantity.toString())
       formData.append('attivo', newProduct.isActive ? '1' : '0')
       formData.append('bevanda', newProduct.bevanda ? '1' : '0')
-      formData.append('proprietario', newProduct.ownerID.toString())
+      formData.append('idGestione', newProduct.ownerID.toString())
 
       // Se c'è un'immagine da caricare
       if (newProduct.imageSrc && !newProduct.imageSrc.startsWith('http')) {
