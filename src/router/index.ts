@@ -4,6 +4,7 @@ import ProdottiView from '../views/ProdottiView.vue'
 import CarrelloView from '../views/CarrelloView.vue'
 import { useTurnoStore } from '../stores/turno'
 import AuthView from '@/views/AuthView.vue'
+import NotFoundView from '@/views/NotFoundView.vue'
 import ReportsView from '@/views/Bar/ReportsView.vue'
 import AddProdottoView from '../views/Gestione/AddProdottoView.vue'
 import ModificaView from '../views/Gestione/ProdottiView.vue'
@@ -84,6 +85,12 @@ const router = createRouter({
       name: 'Gestioni',
       component: GestioniView,
       meta: { autenticated: true, role: ['admin'] }
+    },
+    {
+      path: '/:pathMatch(.*)*',
+      name: 'NotFound',
+      component: NotFoundView,
+      meta: { autenticated: true }
     }
   ],
 })
