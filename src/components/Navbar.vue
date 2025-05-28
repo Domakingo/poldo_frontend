@@ -3,11 +3,13 @@ import { ref, computed } from 'vue'
 import { useRouter, useRoute } from 'vue-router'
 import IconMenu from './icons/IconMenu.vue'
 import { useTurnoStore } from '@/stores/turno'
+import { useAuthStore } from '@/stores/auth'
 
 const router = useRouter()
 const route = useRoute()
 const showMenu = ref(false)
 const turnoStore = useTurnoStore()
+const authStore = useAuthStore()
 
 defineProps<{
     img_profilo: string
@@ -23,15 +25,22 @@ const pageTitles = {
     gestioni: 'Gestioni'
 } as const
 
-const navRoutes = [
+type NavRoute = {
+    name: string;
+    path: string;
+    requiresTurno: boolean;
+    rolesAllowed?: string[];
+}
+
+const navRoutes: NavRoute[] = [
     { name: 'Home', path: '/', requiresTurno: false },
     { name: 'Prodotti', path: '/prodotti', requiresTurno: true },
     { name: 'Carrello', path: '/carrello', requiresTurno: true },
-    { name: 'Utenti', path: '/utenti', requiresTurno: false },
-    { name: 'Gestioni', path: '/gestioni', requiresTurno: false },
-    { name: 'Ordinazioni', path: '/gestione/ordinazioni', requiresTurno: false },
-    { name: 'Ordinazioni Professori', path: '/gestione/ordinazioni/prof', requiresTurno: false }
-] as const
+    { name: 'Utenti', path: '/utenti', requiresTurno: false, rolesAllowed: ['admin'] },
+    { name: 'Gestioni', path: '/gestioni', requiresTurno: false, rolesAllowed: ['admin'] },
+    { name: 'Ordinazioni', path: '/gestione/ordinazioni', requiresTurno: false, rolesAllowed: ['admin', 'gestore'] },
+    { name: 'Ordinazioni Professori', path: '/gestione/ordinazioni/prof', requiresTurno: false, rolesAllowed: ['admin', 'gestore'] }
+]
 
 const toggleMenu = () => showMenu.value = !showMenu.value
 
@@ -56,6 +65,18 @@ const navigate = (path: string, requiresTurno: boolean) => {
     router.push(path)
     showMenu.value = false
 }
+
+const filteredNavRoutes = computed(() => {
+    const userRole = authStore.user?.ruolo || ''
+    
+    return navRoutes.filter(route => {
+        // If no rolesAllowed is specified, or the current user role is included in rolesAllowed, show the route
+        if (!route.rolesAllowed || route.rolesAllowed.includes(userRole)) {
+            return true
+        }
+        return false
+    })
+})
 </script>
 
 <template>
@@ -80,7 +101,7 @@ const navigate = (path: string, requiresTurno: boolean) => {
         >
             <div class="dropdown-menu-content">
                 <div
-                    v-for="route in navRoutes"
+                    v-for="route in filteredNavRoutes"
                     :key="route.path"
                     class="dropdown-menu-item"
                 >

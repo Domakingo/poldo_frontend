@@ -7,6 +7,7 @@ interface User {
   nome: string
   foto: string
   ruolo: string
+  idGestione?: number
 }
 
 export const useAuthStore = defineStore('auth', () => {
@@ -32,11 +33,11 @@ export const useAuthStore = defineStore('auth', () => {
     const checkData = await checkResponse.json();
     loading.value = false;
     isAuthenticated.value = true;
-    
-    const userData: User = {
+      const userData: User = {
       nome: checkData.nome,
       foto: checkData.foto_url,
       ruolo: checkData.ruolo,
+      idGestione: checkData.idGestione
     };
     user.value = userData;
     return true;

@@ -335,19 +335,29 @@ const markProductPrepared = async (productId: number) => {
     
     // Emit the event before awaiting the API call
     emit('product-marked-as-prepared', { productId, turno: props.currentTurno });
-    
-    // Call the API to persist the change
-    const success = await ordiniStore.markProductAsPrepared(productId, props.currentTurno);
-    
-    if (success) {
-      // Refresh the data after marking the product as prepared
-      await fetchProductsData(props.currentTurno);
-    } else {
-      throw new Error('Errore durante il processo di preparazione del prodotto');
+      // Call the API to persist the change
+    try {
+      const success = await ordiniStore.markProductAsPrepared(productId, props.currentTurno);
+      
+      if (success) {
+        // Refresh the data after marking the product as prepared
+        await fetchProductsData(props.currentTurno);
+      } else {
+        throw new Error('Errore durante il processo di preparazione del prodotto');
+      }
+    } catch (apiError: any) {
+      // Check if this is a 403 error (authorization)
+      if (apiError.message && apiError.message.includes('403')) {
+        console.error('Non sei autorizzato a modificare questo prodotto');
+        alert('Non sei autorizzato a modificare questo prodotto. Questo prodotto appartiene ad un\'altra gestione.');
+      } else {
+        console.error('Errore nel marcare il prodotto come preparato:', apiError);
+        alert('Errore nel marcare il prodotto come preparato. Riprova.');
+      }
+      throw apiError;
     }
   } catch (error) {
     console.error('Errore nel marcare il prodotto come preparato:', error);
-    alert('Errore nel marcare il prodotto come preparato. Riprova.');
   }
 };
 
