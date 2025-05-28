@@ -1,9 +1,6 @@
 import { defineStore } from 'pinia'
 import { ref, computed } from 'vue'
-
-const API_CONFIG = {
-  BASE_URL: 'http://figliolo.it:5006/v1',
-}
+import { API_CONFIG } from '@/utils/api';
 
 export interface Gestione {
   id: number
@@ -41,9 +38,10 @@ export const useGestioniStore = defineStore('gestioni', () => {
   const fetchAll = async () => {
     try {
       const response = await fetch(
-        `${API_CONFIG.BASE_URL}/gestioni`,
-        { credentials: 'include' }
-      )
+        `${API_CONFIG.BASE_URL}/gestioni`, {
+        method: 'GET',
+        credentials: 'include'
+      });
 
       if (!response.ok) {
         throw new Error(`HTTP error! status: ${response.status}`)

@@ -47,4 +47,3 @@ export const handleRequest = async <T>(
     throw new Error(`${errorMsg}: ${message}`);
   }
 }
-}
