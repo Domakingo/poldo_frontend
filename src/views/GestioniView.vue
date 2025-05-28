@@ -1,7 +1,5 @@
 <template>
     <div class="gestioni-admin-container">
-        <h1 class="page-title">Gestione Entità</h1>
-
         <!-- Alert per messaggi di feedback -->
         <Alert v-if="alertMessage" :message="alertMessage" :type="alertType" @close="alertMessage = ''" />
         <!-- Barra di ricerca e pulsante per creare una nuova gestione -->
@@ -29,9 +27,9 @@
                     <table>
                         <thead>
                             <tr>
-                                <th>ID</th>
-                                <th>Nome</th>
-                                <th>Azioni</th>
+                                <th class="col-id">ID</th>
+                                <th class="col-name">Nome</th>
+                                <th class="col-actions">Azioni</th>
                             </tr>
                         </thead>
                         <tbody>
@@ -547,6 +545,20 @@ table {
     background-color: var(--card-bg);
 }
 
+/* Larghezze delle colonne */
+.col-id {
+  width: 80px; /* Larghezza fissa per ID */
+}
+
+.col-name {
+  min-width: 200px;
+  width: auto; /* Occupa lo spazio rimanente */
+}
+
+.col-actions {
+  width: 250px; /* Larghezza fissa per azioni */
+}
+
 th,
 td {
     padding: 12px 15px;
@@ -591,8 +603,8 @@ tr:hover {
 }
 
 .btn.edit {
-    background-color: var(--color-primary);
-    color: white;
+    background-color: var(--color-background-mute);
+    color: var(--poldo-text);
 }
 
 .btn.delete {
