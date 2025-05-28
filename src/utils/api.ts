@@ -1,6 +1,6 @@
 // API configuration and utility functions
 export const API_CONFIG = {
-  BASE_URL: 'http://localhost:5006/v1',
+  BASE_URL: 'http://localhost.it:5006/v1',
 };
 
 export interface ApiError {

@@ -55,17 +55,6 @@ function navigate(path: string) {
   showMenu.value = false
 }
 
-const filteredNavRoutes = computed(() => {
-    const userRole = authStore.user?.ruolo || ''
-    
-    return navRoutes.filter(route => {
-        // If no rolesAllowed is specified, or the current user role is included in rolesAllowed, show the route
-        if (!route.rolesAllowed || route.rolesAllowed.includes(userRole)) {
-            return true
-        }
-        return false
-    })
-})
 </script>
 
 <template>
