@@ -44,22 +44,22 @@
     </div>
   </div>
 
-  <!-- Tabella utenti -->
-  <div class="table-container">
-    <div class="table-scroll-container">
-      <table v-if="users.length > 0">
-        <thead>
-          <tr>
-            <th>ID</th>
-            <th>Email</th>
-            <th>Ruolo</th>
-            <th>Classe</th>
-            <th>Stato</th>
-            <th>Azioni</th>
-          </tr>
-        </thead>
-        <tbody>
-          <tr v-for="user in filteredUsers" :key="user.idUtente" :class="{ 'banned': user.bannato === 1 }">
+    <!-- Tabella utenti -->
+    <div class="table-container">
+      <div class="table-scroll-container">
+        <table v-if="users.length > 0">
+          <thead>
+            <tr>
+              <th>ID</th>
+              <th>Email</th>
+              <th>Ruolo</th>
+              <th>Classe</th>
+              <th>Stato</th>
+              <th>Azioni</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr v-for="user in filteredUsers" :key="user.idUtente">
             <td>{{ user.idUtente }}</td>
             <td>{{ user.mail }}</td>
             <td>
@@ -433,7 +433,7 @@ tr.banned {
 }
 
 .actions {
-  display: flex;
+  /* display: flex; */
   gap: 8px;
 }
 

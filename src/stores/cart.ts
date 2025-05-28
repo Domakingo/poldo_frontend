@@ -1,11 +1,12 @@
 import { defineStore } from 'pinia'
 import { ref, computed } from 'vue'
 import { useTurnoStore } from './turno'
+import { API_CONFIG } from '@/utils/api'
 
 
 export interface CartItem {
   id: number
-  quantity: number
+  selectedQuantity: number
 }
 
 interface CartByTurno {
@@ -25,7 +26,7 @@ export const useCartStore = defineStore(
         const currentTurno = turnoStore.turnoSelezionato
 
         try {
-          const response = await fetch(`http://figliolo.it:5006/v1/ordini/me?nTurno=${currentTurno}`, {
+          const response = await fetch(`${API_CONFIG.BASE_URL}/ordini/me?nTurno=${currentTurno}`, {
             method: 'GET',
             credentials: 'include'
           })
@@ -44,7 +45,7 @@ export const useCartStore = defineStore(
 
           itemsByTurno.value[currentTurno] = ordine.prodotti.map((item: any) => ({
             id: item.idProdotto,
-            quantity: item.quantita,
+            selectedQuantity: item.quantita,
           }))
           return true
         } catch (error) {
@@ -60,9 +61,9 @@ export const useCartStore = defineStore(
       const existingItem = cart.find((item) => item.id === productId)
 
       if (existingItem) {
-        existingItem.quantity += quantity
+        existingItem.selectedQuantity += quantity
       } else {
-        cart.push({ id: productId, quantity: quantity })
+        cart.push({ id: productId, selectedQuantity: quantity })
       }
     }
 
@@ -84,7 +85,7 @@ export const useCartStore = defineStore(
       return itemsByTurno.value[currentTurno.value]
     }
 
-    async function confirmCart(): Promise<{ ok: boolean; message: string }> {
+    async function confirmCart(orario: string | null): Promise<{ ok: boolean; message: string }> {
         const turno = currentTurno.value
         const cart = itemsByTurno.value[turno]
 
@@ -95,19 +96,26 @@ export const useCartStore = defineStore(
 
         const cartData = cart.map((item) => ({
           idProdotto: item.id,
-          quantita: item.quantity,
+          quantita: item.selectedQuantity,
         }))
 
-        const body = {
-          nTurno: turno,
-          prodotti: cartData,
+        const body: any = {
+            nTurno: turno,
+            prodotti: cartData,
+        }
+
+        if (orario) {
+            body.oraRitiro = orario
         }
 
         try {
-          const response = await fetch('http://figliolo.it:5006/v1/ordini', {
+          const response = await fetch(`${API_CONFIG.BASE_URL}/ordini`, {
             method: 'POST',
-            credentials: 'include',
+            headers: {
+              'Content-Type': 'application/json',
+            },
             body: JSON.stringify(body),
+            credentials: 'include',
           })
 
           const data = await response.json()
@@ -129,6 +137,43 @@ export const useCartStore = defineStore(
       }
 
 
+      async function deleteChar(): Promise<{ ok: boolean; message: string }> {
+        const currentTurno = turnoStore.turnoSelezionato
+        const cart = itemsByTurno.value[currentTurno]
+
+        if (cart.length === 0) {
+          console.error('Carrello vuoto')
+          return { ok: false, message: 'Carrello vuoto' }
+        }
+
+        const body: any = {
+            nTurno: currentTurno,
+        }
+
+        try {
+          const response = await fetch(`${API_CONFIG.BASE_URL}/ordini`, {
+            method: 'DELETE',
+            headers: {
+              'Content-Type': 'application/json',
+            },
+            body: JSON.stringify(body),
+            credentials: 'include',
+          })
+
+          if (!response.ok) {
+            console.error('Errore durante la cancellazione dell’ordine')
+            return {ok: false, message: 'Errore durante la cancellazione dell’ordine'}
+          }
+
+          console.log('Carrello cancellato con successo')
+          clearCart()
+          return {ok: true, message: 'Carrello cancellato con successo'}
+        } catch (error) {
+          console.error('Errore di rete:', error)
+            return {ok: false, message: 'Errore di rete: impossibile contattare il server'}
+        }
+      }
+
     return {
       itemsByTurno,
       getItems,
@@ -137,7 +182,8 @@ export const useCartStore = defineStore(
       clearCart,
       clearAllCarts,
       confirmCart,
-      getOrdineByTurno
+      getOrdineByTurno,
+      deleteChar
     }
   },
   {

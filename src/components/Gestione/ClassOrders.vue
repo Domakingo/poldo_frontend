@@ -29,10 +29,17 @@
             <div v-if="!order.prodotti || order.prodotti.length === 0" class="no-products">
               Nessun prodotto ordinato
             </div>
-            <template v-else>
-              <div v-for="product in order.prodotti" :key="product.idProdotto || generateKey(product)" class="class-product">
+            <template v-else>              <div 
+                v-for="product in order.prodotti" 
+                :key="product.idProdotto || generateKey(product)" 
+                class="class-product"
+                :class="{'product-prepared': !!product.preparato}"
+              >
                 <span>{{ product.nome }}</span>
-                <span>x{{ product.quantita }}</span>
+                <div class="product-info">
+                  <span>x{{ product.quantita }}</span>                  <span v-if="!!product.preparato" class="product-status prepared">✓</span>
+                  <span v-else class="product-status">⏳</span>
+                </div>
               </div>
             </template>
           </div>
@@ -54,16 +61,20 @@
 </template>
 
 <script setup lang="ts">
-import { computed } from 'vue'
+import { computed, onMounted, watch } from 'vue'
 import { useTurnoStore } from '@/stores/turno'
+import { useOrdiniStore } from '@/stores/Gestione/ordini'
+import { API_CONFIG } from '@/utils/api'
 
 const turnoStore = useTurnoStore()
+const ordiniStore = useOrdiniStore()
 
 interface Product {
   idProdotto?: number;
   nome?: string;
   quantita?: number;
   prezzo?: number;
+  preparato?: boolean;
 }
 
 interface ClassOrder {
@@ -93,7 +104,6 @@ const generateKey = (item: any): string => {
 
 const safeClassOrders = computed<ClassOrder[]>(() => {
   if (!Array.isArray(props.classOrders)) {
-    console.warn('classOrders non è un array:', props.classOrders)
     return []
   }
 
@@ -157,33 +167,39 @@ const emit = defineEmits(['orderMarkedAsPrepared'])
 
 // Function to mark an order as prepared
 const markOrderAsPrepared = async (order: ClassOrder) => {
-  if (!order.classe) {
-    console.error('Impossibile contrassegnare l\'ordine: classe mancante')
+  if (!order.classe || !order.classeId) {
     return
   }
-
-  try {
-    const API_CONFIG = {
-      BASE_URL: 'http://figliolo.it:5006/v1',
-      TOKEN: "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZCI6NDgsInJ1b2xvIjoiYWRtaW4iLCJpYXQiOjE3NDQyNzk2ODMsImV4cCI6MTc3NTgzNzI4M30.AelK6BkvrydKSqNGuXbzWGzST4yctrHvdjy66XeoMHI"
-    }
-
-    const response = await fetch(`${API_CONFIG.BASE_URL}/ordini/classi/${order.classeId}/turno/${props.selectedTurno}/prepara`, {
+  
+  try {    
+    // Use direct fetch with the correct endpoint 
+    const url = `${API_CONFIG.BASE_URL}/ordini/classi/${order.classeId}/turno/${props.selectedTurno}/prepara`;
+    
+    const response = await fetch(url, {
       method: 'PUT',
-      credentials: 'include'
-    })
+      credentials: 'include',
+      mode: 'cors'
+    });
+    
+    const result = await response.json();
 
     if (!response.ok) {
-      throw new Error(`Errore API con stato ${response.status}`)
-    }
-
-    // Notify parent component that the order was marked as prepared
-    emit('orderMarkedAsPrepared', { classe: order.classe, turno: props.selectedTurno })
+      throw new Error(`Errore API: ${response.status} ${response.statusText}`);
+    }    // Notify parent component that the order was marked as prepared
+    emit('orderMarkedAsPrepared', { 
+      classe: order.classe, 
+      classeId: order.classeId, 
+      turno: props.selectedTurno 
+    });
   } catch (error) {
-    console.error('Errore nel marcare l\'ordine come preparato:', error)
     alert('Errore nel marcare l\'ordine come preparato. Riprova.')
   }
 }
+
+// Call on mount
+onMounted(() => {
+  // Initialize any needed functionality
+});
 </script>
 
 <style scoped>
@@ -239,7 +255,24 @@ h3 {
 .prepared-card {
   opacity: 0.7;
   background-color: rgba(var(--poldo-background-soft-rgb, 245, 245, 245), 0.5) !important;
-  border-left: 4px solid var(--poldo-secondary, #999) !important;
+  border-left: 4px solid var(--poldo-secondary, #4CAF50) !important;
+  position: relative;
+}
+
+.prepared-card::after {
+  content: '✓';
+  position: absolute;
+  top: 10px;
+  right: 10px;
+  width: 30px;
+  height: 30px;
+  background-color: var(--poldo-secondary, #4CAF50);
+  color: white;
+  font-size: 20px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 50%;
 }
 
 .class-products {
@@ -323,6 +356,34 @@ h3 {
 .mark-prepared-btn svg {
   width: 18px;
   height: 18px;
+}
+
+/* New styles for prepared products */
+.product-prepared {
+  opacity: 0.7;
+  text-decoration: line-through;
+  color: var(--poldo-text-muted, #777);
+}
+
+.product-info {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.product-status {
+  display: inline-block;
+  width: 20px;
+  height: 20px;
+  text-align: center;
+  line-height: 20px;
+  border-radius: 50%;
+  font-size: 12px;
+}
+
+.product-status.prepared {
+  background-color: var(--poldo-secondary, #4CAF50);
+  color: white;
 }
 
 @media (max-width: 768px) {

@@ -20,10 +20,9 @@
           <template v-else>
             {{ getPreparedQuantity(product.idProdotto) }}/{{ getTotalQuantity(product.idProdotto) }}
           </template>
-        </div>        <button
-          v-if="!isProductFullyPrepared(product.idProdotto)"
+        </div>        <button          v-if="!isProductFullyPrepared(product.idProdotto)"
           class="mark-prepared-btn"
-          @click="markProductAsPrepared(product.idProdotto)"
+          @click="markProductPrepared(product.idProdotto)"
           title="Segna come preparato"
         >
           <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
@@ -37,6 +36,10 @@
 
 <script setup lang="ts">
 import { computed, onMounted, ref, watch } from 'vue'
+import { useOrdiniStore } from '@/stores/Gestione/ordini'
+import { API_CONFIG } from '@/utils/api'
+
+const ordiniStore = useOrdiniStore()
 
 interface Product {
   idProdotto: number;
@@ -44,6 +47,9 @@ interface Product {
   quantita: number;
   prezzo: number;
   preparato?: boolean;
+  quantitaOrdinata?: number;
+  tuttiPreparati?: boolean;
+  quantitaPreparata?: number;
 }
 
 interface ClassOrder {
@@ -63,24 +69,31 @@ const props = defineProps({
   }
 })
 
-const uniqueProducts = computed(() => {
+const uniqueProducts = computed<Product[]>(() => {
   // If we have API data, use that
-  if (productsData.value.length > 0) {
-    return productsData.value.map(product => ({
-      idProdotto: product.idProdotto,
-      nome: product.nome,
-      prezzo: product.prezzo,
-      quantitaOrdinata: product.quantitaOrdinata,
-      tuttiPreparati: product.tuttiPreparati,
-      quantitaPreparata: product.quantitaPreparata
-    }));
+  if (productsData.value && productsData.value.length > 0) {
+    // Check if the data has the expected format
+    const isValidFormat = productsData.value.every(product => 
+      typeof product === 'object' && product !== null && 'idProdotto' in product
+    );
+    
+    if (isValidFormat) {
+      return productsData.value.map(product => ({
+        idProdotto: product.idProdotto,
+        nome: product.nome || 'Prodotto senza nome',
+        quantita: product.quantitaOrdinata || 0, // Map to the Product interface
+        prezzo: product.prezzo || 0,
+        preparato: product.tuttiPreparati || false, // Map tuttiPreparati to preparato
+        quantitaOrdinata: product.quantitaOrdinata || 0,
+        tuttiPreparati: product.tuttiPreparati || false,
+        quantitaPreparata: product.quantitaPreparata || 0
+      }));
+    }
   }
 
   // Otherwise, fall back to client-side calculation
   const products = new Map()
-
   if (!Array.isArray(props.classOrders)) {
-    console.error('classOrders non è un array:', props.classOrders)
     return []
   }
 
@@ -93,11 +106,13 @@ const uniqueProducts = computed(() => {
       if (product.idProdotto === undefined) {
         return
       }
-        if (!products.has(product.idProdotto)) {
-        products.set(product.idProdotto, {
-          idProdotto: product.idProdotto,
-          nome: product.nome,
-          prezzo: product.prezzo
+        if (!products.has(product.idProdotto)) {        
+          products.set(product.idProdotto, {
+            idProdotto: product.idProdotto,
+            nome: product.nome,
+            quantita: product.quantita || 0, // Add the quantita property
+            prezzo: product.prezzo,
+            preparato: product.preparato || false
         })
       }
     })
@@ -117,15 +132,22 @@ const sortedProducts = computed(() => {
     }
 
     // If both have the same prepared status, sort by name
-    return a.nome.localeCompare(b.nome);
+    const nameA = a.nome || '';
+    const nameB = b.nome || '';
+    return nameA.localeCompare(nameB);
   });
 })
 
 const getTotalQuantity = (productId: number): number => {
+  // Ensure productId is valid
+  if (productId === undefined || productId === null) {
+    return 0;
+  }
+
   // First check if we have API data for this product
-  const apiProduct = productsData.value.find(p => p.idProdotto === productId);
-  if (apiProduct) {
-    return apiProduct.quantitaOrdinata;
+  const apiProduct = productsData.value?.find(p => p.idProdotto === productId);
+  if (apiProduct && 'quantitaOrdinata' in apiProduct) {
+    return apiProduct.quantitaOrdinata || 0;
   }
 
   // Fallback to client-side calculation if API data isn't available
@@ -146,10 +168,15 @@ const getTotalQuantity = (productId: number): number => {
 }
 
 const getPreparedQuantity = (productId: number): number => {
+  // Ensure productId is valid
+  if (productId === undefined || productId === null) {
+    return 0;
+  }
+  
   // First check if we have API data for this product
-  const apiProduct = productsData.value.find(p => p.idProdotto === productId);
-  if (apiProduct) {
-    return apiProduct.quantitaPreparata;
+  const apiProduct = productsData.value?.find(p => p.idProdotto === productId);
+  if (apiProduct && 'quantitaPreparata' in apiProduct) {
+    return apiProduct.quantitaPreparata || 0;
   }
 
   // Fallback to client-side calculation if API data isn't available
@@ -176,9 +203,14 @@ const getPreparedQuantity = (productId: number): number => {
 }
 
 const isProductFullyPrepared = (productId: number): boolean => {
+  // Ensure productId is valid
+  if (productId === undefined || productId === null) {
+    return false;
+  }
+
   // First check if we have API data for this product
-  const apiProduct = productsData.value.find(p => p.idProdotto === productId);
-  if (apiProduct) {
+  const apiProduct = productsData.value?.find(p => p.idProdotto === productId);
+  if (apiProduct && 'tuttiPreparati' in apiProduct) {
     return apiProduct.tuttiPreparati;
   }
 
@@ -191,34 +223,6 @@ const isProductFullyPrepared = (productId: number): boolean => {
 
 const emit = defineEmits(['product-marked-as-prepared'])
 
-// Function to mark a product as prepared
-const markProductAsPrepared = async (productId: number) => {
-  try {
-    const API_CONFIG = {
-      BASE_URL: 'http://figliolo.it:5006/v1',
-      TOKEN: "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZCI6NDgsInJ1b2xvIjoiYWRtaW4iLCJpYXQiOjE3NDQyNzk2ODMsImV4cCI6MTc3NTgzNzI4M30.AelK6BkvrydKSqNGuXbzWGzST4yctrHvdjy66XeoMHI"
-    };
-
-    const response = await fetch(`${API_CONFIG.BASE_URL}/ordini/prodotti/${productId}/prepara?nTurno=${props.currentTurno}`, {
-      method: 'PUT',
-      credentials: 'include'
-    });
-
-    if (!response.ok) {
-      throw new Error(`Errore API con stato ${response.status}`);
-    }
-
-    // Refresh the products data after marking as prepared
-    await fetchProductsData(props.currentTurno);
-
-    // Notify parent component that the product was marked as prepared
-    emit('product-marked-as-prepared', { productId, turno: props.currentTurno });
-  } catch (error) {
-    console.error('Errore nel marcare il prodotto come preparato:', error);
-    alert('Errore nel marcare il prodotto come preparato. Riprova.');
-  }
-};
-
 // Add state for products data from API
 const productsData = ref<{
   idProdotto: number;
@@ -230,42 +234,125 @@ const productsData = ref<{
   quantitaPreparata: number;
 }[]>([]);
 
-// API configuration for fetching products
-const API_CONFIG = {
-  BASE_URL: 'http://figliolo.it:5006/v1',
-  TOKEN: "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZCI6NDgsInJ1b2xvIjoiYWRtaW4iLCJpYXQiOjE3NDQyNzk2ODMsImV4cCI6MTc3NTgzNzI4M30.AelK6BkvrydKSqNGuXbzWGzST4yctrHvdjy66XeoMHI"
-}
-
 // Function to fetch products data from API
 const fetchProductsData = async (turno: number = props.currentTurno) => {
   try {
+    // Set the date in the store to today
     const today = new Date();
-    const year = today.getFullYear();
-    const month = String(today.getMonth() + 1).padStart(2, '0');
-    const day = String(today.getDate()).padStart(2, '0');
-    const dateStr = `${year}-${month}-${day}`;
-
-    // Corrected API endpoint for product totals with preparation status
-    const url = `${API_CONFIG.BASE_URL}/ordini/prodotti?startDate=${dateStr}&endDate=${dateStr}&nTurno=${turno}`;
-
-    const response = await fetch(url, {
-      credentials: 'include'
-    });
-
-    if (!response.ok) {
-      throw new Error(`Errore API con stato ${response.status}`);
+    const dateStr = ordiniStore.formatDate(today);
+    ordiniStore.setSelectedDate(dateStr);
+    
+    // Use the store method to fetch class orders
+    await ordiniStore.fetchClassOrders(turno);
+      // Get the class orders from the store
+    const data = ordiniStore.classOrders;
+    
+    // Process the data to ensure it matches the expected format
+    // The API returns orders by class, but we need product details
+    if (Array.isArray(data)) {
+      // Process data to extract product information
+      const productMap = new Map();
+      
+      data.forEach(order => {
+        if (order && Array.isArray(order.prodotti)) {          
+          order.prodotti.forEach((product: { 
+            idProdotto: number; 
+            nome?: string; 
+            prezzo?: number;
+            quantita?: number;
+            preparato?: boolean 
+          }) => {
+            if (product && product.idProdotto) {
+              const existingProduct = productMap.get(product.idProdotto) as Product & {
+                quantitaOrdinata: number;
+                quantitaPreparata: number;
+                tuttiPreparati: boolean;
+              };
+              
+              // Check if the product itself is marked as prepared
+              const isProductPrepared = !!product.preparato;
+              
+              if (existingProduct) {
+                // Update existing product entry
+                existingProduct.quantitaOrdinata += product.quantita || 0;
+                existingProduct.quantitaPreparata += isProductPrepared ? (product.quantita || 0) : 0;
+                existingProduct.tuttiPreparati = (existingProduct.quantitaOrdinata === existingProduct.quantitaPreparata);
+              } else {                
+                // Create new product entry
+                productMap.set(product.idProdotto, {
+                  idProdotto: product.idProdotto,
+                  nome: product.nome,
+                  quantita: product.quantita || 0, // Added for Product interface compatibility
+                  prezzo: product.prezzo || 0,
+                  quantitaOrdinata: product.quantita || 0,
+                  quantitaPreparata: isProductPrepared ? (product.quantita || 0) : 0,
+                  tuttiPreparati: isProductPrepared,
+                  preparato: isProductPrepared
+                });}
+            }
+          });
+        }
+      });
+      
+      productsData.value = Array.from(productMap.values());
+    } else {
+      productsData.value = [];
     }
-
-    const data = await response.json();
-    productsData.value = data;
   } catch (error) {
-    console.error('Errore nel recupero dei dati dei prodotti:', error);
     // Fall back to client-side calculation if API fails
+    productsData.value = [];
+  }
+};
+// Function to mark a product as prepared
+const markProductPrepared = async (productId: number) => {
+  try {
+    if (!productId || props.currentTurno === undefined || props.currentTurno === null) {
+      alert('Errore: ID prodotto o turno mancante');
+      return;
+    }
+    
+    // Update local API data optimistically for immediate UI feedback
+    if (productsData.value && productsData.value.length > 0) {
+      const productToUpdate = productsData.value.find(p => p.idProdotto === productId);
+      if (productToUpdate) {
+        productToUpdate.quantitaPreparata = productToUpdate.quantitaOrdinata;
+        productToUpdate.tuttiPreparati = true;
+      }
+    }
+    
+    // Update local class orders data optimistically
+    if (Array.isArray(props.classOrders)) {
+      props.classOrders.forEach(order => {
+        if (order && Array.isArray(order.prodotti)) {
+          order.prodotti.forEach(product => {
+            if (product.idProdotto === productId) {
+              product.preparato = true;
+            }
+          });
+        }
+      });
+    }
+    
+    // Emit the event before awaiting the API call
+    emit('product-marked-as-prepared', { productId, turno: props.currentTurno });
+    
+    // Call the API to persist the change
+    const success = await ordiniStore.markProductAsPrepared(productId, props.currentTurno);
+    
+    if (success) {
+      // Refresh the data after marking the product as prepared
+      await fetchProductsData(props.currentTurno);
+    } else {
+      throw new Error('Errore durante il processo di preparazione del prodotto');
+    }
+  } catch (error) {
+    console.error('Errore nel marcare il prodotto come preparato:', error);
+    alert('Errore nel marcare il prodotto come preparato. Riprova.');
   }
 };
 
+// Call on mount and when products change
 onMounted(() => {
-  // Fetch products data for the selected turno on component mount
   fetchProductsData(props.currentTurno);
 });
 
@@ -273,7 +360,6 @@ onMounted(() => {
 watch(() => props.currentTurno, (newTurno) => {
   fetchProductsData(newTurno);
 });
-
 </script>
 
 <style scoped>

@@ -6,6 +6,7 @@ import QuantityControl from '@/components/ControlloQuantitaProdotto.vue'
 import type { OrdineClasse } from '@/stores/cartClasse'
 import QRModal from '@/components/QRModal.vue'
 import { useAuthStore } from '@/stores/auth'
+import Timer from '@/components/TimerConferma.vue'
 
 
 import { computed, ref, onMounted, watch } from 'vue'
@@ -29,6 +30,9 @@ const haveCartClasse = computed(() => !!ordineClasse.value?.ordine?.length)
 const haveCartClasseConf = ref<true | false>(false)
 
 const showQRModal = ref(false)
+
+const showTimePicker = ref(false)
+const selectedTime = ref('')
 
 const allProducts = computed(() => productsStore.products)
 
@@ -56,7 +60,7 @@ const totalPrice = computed(() => {
     return items.value.reduce((total, item) => {
         const product = allProducts.value.find(p => p.id === item.id)
         if(!product) return total
-        return total + (product.price * item.quantity)
+        return total + (product.price * item.selectedQuantity)
     }, 0)
 })
 
@@ -72,7 +76,11 @@ const checkout= () => {
     if(selectedMacro.value === 'classe') {
         checkoutClasse();
     } else {
-        checkoutPersonale();
+        if(authStore.user?.ruolo === 'prof') {
+            checkoutProf();
+        } else {
+            checkoutPersonale();
+        }
     }
 }
 
@@ -84,6 +92,10 @@ const checkoutClasse = () => {
 const checkoutPersonale = () => {
     checkoutAlertMessage.value = 'Confermi di procedere con l\'ordine?'
     showCheckoutAlert.value = true
+}
+
+const checkoutProf = () => {
+    showTimePicker.value = true
 }
 
 const clearCart = () => {
@@ -106,6 +118,9 @@ const confermaOrdineAlert = async () => {
         checkoutAlertMessage.value = risp.message
         showCheckoutAlert.value = true
     }
+    cartStore.getOrdineByTurno().then((cart) => {
+        haveCart.value = cart === true
+    })
 }
 
 const cancelOdr = () => {
@@ -141,6 +156,27 @@ async function fetchOrdineClasse() {
   }
 }
 
+
+async function handleConfirmTimer() {
+    showTimePicker.value = false
+    console.log('confirmOdrPersonaleProf')
+    console.log('selectedTime.value', selectedTime.value+':00')
+    const risp = await cartStore.confirmCart(selectedTime.value+':00')
+    fetchOrdineClasse()
+    altertype.value = risp.ok ? 'success' : 'error'
+    checkoutAlertMessage.value = risp.message
+    showCheckoutAlert.value = true
+}
+
+
+async function deleteOrdine(){
+    const risp = await cartStore.deleteChar()
+    fetchOrdineClasse()
+    altertype.value = risp.ok ? 'success' : 'error'
+    checkoutAlertMessage.value = risp.message
+    showCheckoutAlert.value = true
+}
+
 onMounted(async () => {
     fetchOrdineClasse();
 })
@@ -159,6 +195,12 @@ getCart();
     <div class="carrello">
         <Alert v-if="showCheckoutAlert" :type="altertype" :message="checkoutAlertMessage" @confirm="confermaOrdineAlert"
             @cancel="cancelOdr" @close="closeAlert" />
+        <Timer
+            v-if="showTimePicker"
+            v-model="selectedTime"
+            @confirm="handleConfirmTimer"
+            @cancel="showTimePicker = false"
+        />
 
         <div v-if="isNotStudente"class="category-switch">
 
@@ -178,7 +220,8 @@ getCart();
                         <path
                             d="M16 11C17.66 11 18.99 9.66 18.99 8S17.66 5 16 5C14.34 5 13 6.34 13 8S14.34 11 16 11M8 11C9.66 11 10.99 9.66 10.99 8S9.66 5 8 5C6.34 5 5 6.34 5 8S6.34 11 8 11M8 13C5.67 13 1 14.17 1 16.5V18H15V16.5C15 14.17 10.33 13 8 13M16 13C15.71 13 15.38 13.03 15.03 13.05C16.19 13.89 17 15.02 17 16.5V18H23V16.5C23 14.17 18.33 13 16 13Z" />
                     </svg>
-                    <span>Classe</span>
+                    <span v-if="authStore.user!== null && authStore.user.ruolo==='prof'">Ordinato</span>
+                    <span v-else>Classe</span>
                 </button>
             </div>
         </div>
@@ -202,7 +245,7 @@ getCart();
                         <div v-for="item in itemsDetails" :key="item.id" class="receipt-item">
                             <img :src="item.imageSrc" alt="Product Image" class="product-image" />
                             <span class="product-info">
-                                x{{ item.quantity }}
+                                x{{ item.selectedQuantity }}
                                 {{
                                 item.title
                                 }}
@@ -210,7 +253,7 @@ getCart();
                             <div class="quantity-price">
                                 <QuantityControl :productId="item.id" :delete="false" :disabled="haveCart" />
                                 <span class="item-total">
-                                    €{{ item.price ? (item.quantity * item.price).toFixed(2) : '0.00' }}
+                                    €{{ item.price ? (item.selectedQuantity * item.price).toFixed(2) : '0.00' }}
                                 </span>
                             </div>
                         </div>
@@ -227,7 +270,7 @@ getCart();
                 </div>
                 <div class="summary-actions">
                     <button class="checkout-btn" @click="checkout" :disabled="haveCart">Procedi all'ordine</button>
-                    <button v-if="haveCart" class="checkout-btn">Elimina oridine</button>
+                    <button v-if="haveCart" @click="deleteOrdine" class="checkout-btn">Elimina oridine</button>
                     <button class="clear-btn" @click="clearCart">Svuota carrello</button>
                     <button class="continue-btn" @click="continueShopping">Continua lo shopping</button>
                 </div>
@@ -253,7 +296,7 @@ getCart();
                             <div>
                                 <span class="giallo">{{ ordine.user.nome }}</span><span> : €{{ ordine.totale }}</span>
                             </div>
-                            <div class="switch-container">
+                            <div v-if="authStore.user!== null && authStore.user.ruolo!=='prof'" class="switch-container">
                                 <button class="switch-btn"
                                     :class="{ active: isconf.find(o => o.id === ordine.idOrdine)?.isConf }"
                                     @click="switchOrdineSingolo(ordine.idOrdine, true)">
@@ -281,7 +324,7 @@ getCart();
                             <img src="https://lh3.googleusercontent.com/a/ACg8ocLPv09a9-uNbEG-ZfRm5bWQUlyLOpBaKxHz88de_c6vB8RvQ_Plrg=s96-c"
                                 alt="Product Image" class="product-image" />
                             <span class="product-info">
-                                x{{ item.quantita }}
+                                x{{ item.selectedQuantity }}
                                 {{
                                 item.nome
                                 }}
@@ -290,7 +333,7 @@ getCart();
                                 <!-- <QuantityControl :productId="item.id" :delete="false" /> -->
                                 <span class="item-total">
                                     €{{
-                                    (item.quantita * item.prezzo).toFixed(2)
+                                    (item.selectedQuantity * item.prezzo).toFixed(2)
                                     }}
                                 </span>
                             </div>

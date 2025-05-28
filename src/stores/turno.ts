@@ -1,5 +1,6 @@
 import { defineStore } from 'pinia'
 import { ref } from 'vue'
+import { API_CONFIG } from '@/utils/api'
 
 interface Turno {
   n: number
@@ -22,7 +23,7 @@ export const useTurnoStore = defineStore('turno', () => {
     try {
 
       const giornoSettimana = new Date().toLocaleDateString('it-IT', { weekday: 'long' }).toLowerCase().substring(0, 3)
-      const response = await fetch(`http://figliolo.it:5006/v1/turni?giorno=${giornoSettimana}`, {credentials: 'include'});
+      const response = await fetch(`${API_CONFIG.BASE_URL}/turni?giorno=${giornoSettimana}`, {credentials: 'include'});
       if (response.status === 404) throw new Error('Turni non trovati per oggi')
       if (!response.ok) throw new Error('Errore nella risposta della rete')
 

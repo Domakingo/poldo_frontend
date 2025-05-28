@@ -85,7 +85,7 @@ const flipCard = (event: Event) => {
             Disponibili: {{ product.disponibility }}/{{ product.quantity }}
           </div>
 
-          <QuantityControl v-if="product.disponibility > 0" :product-id="id" />
+          <QuantityControl v-if="product.disponibility > 0" :product-id="id" :disabled="disabled"/>
           <div v-else class="out-of-stock-message">Prodotto esaurito</div>
         </div>
       </div>

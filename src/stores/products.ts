@@ -1,5 +1,6 @@
 import { defineStore } from 'pinia'
 import { ref, computed } from 'vue'
+import { API_CONFIG } from '@/utils/api'
 
 export interface Product {
   id: number
@@ -12,6 +13,7 @@ export interface Product {
   disponibility: number
   tags: string[]
   isActive: boolean
+  bevanda: boolean
   ownerID: number
 }
 
@@ -49,7 +51,10 @@ async function handleRequest<T>(
 
 export const useProductsStore = defineStore('products', () => {
   const products = ref<Product[]>([])
-  const defaultImageBlobUrl = ref<string>('')
+  const defaultImageBlobUrl = {
+    cibo: "/cibo.svg",
+    bevanda: "/bevanda.svg"
+  }
 
   const allIngredients = computed(() => {
     const ingredients = new Set<string>()
@@ -67,28 +72,9 @@ export const useProductsStore = defineStore('products', () => {
     return Array.from(tags)
   })
 
-  async function fetchDefaultImage() {
-    try {
-      const response = await fetch(API_CONFIG.DEFAULT_IMAGE, {
-        credentials: 'include'
-      })
-
-      if (!response.ok) {
-        throw new Error(`Failed to fetch default image: ${response.status}`)
-      }
-
-      const blob = await response.blob()
-      defaultImageBlobUrl.value = URL.createObjectURL(blob)
-    } catch (error) {
-      console.error('Error fetching default image:', error)
-      defaultImageBlobUrl.value = API_CONFIG.DEFAULT_IMAGE
-    }
-  }
 
   const initializeProducts = async () => {
     try {
-      await fetchDefaultImage();
-
       const raw = await handleRequest<any[]>(
         'prodotti',
         'Errore fetch prodotti'
@@ -103,15 +89,16 @@ export const useProductsStore = defineStore('products', () => {
           title: item.nome,
           description: item.descrizione,
           ingredients: item.ingredienti,
-          imageSrc: imageExists ? productImageUrl : defaultImageBlobUrl.value,
+          imageSrc: imageExists ? productImageUrl : item.bevanda === 1 ? defaultImageBlobUrl.bevanda : defaultImageBlobUrl.cibo,
           price: parseFloat(item.prezzo),
           quantity: item.quantita,
           disponibility: item.disponibilita,
           tags: item.tags,
           isActive: item.attivo === 1,
+          bevanda: item.bevanda === 1,
           ownerID: item.proprietario
-        };
-      }));
+        }
+      }))
     } catch (err) {
       console.error("Errore durante l'inizializzazione dei prodotti:", {
         message: err instanceof Error ? err.message : String(err),

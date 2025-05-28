@@ -17,11 +17,13 @@ const props = defineProps({
     }
 })
 
+console.log("bbbbbb", props.disabled)
+
 const cartStore = useCartStore()
 
 const currentQuantity = computed(() => {
     const item = cartStore.getItems().find(item => item.id === props.productId)
-    return item ? item.quantity : 0
+    return item ? item.selectedQuantity : 0
 })
 
 const handleQuantityChange = (delta: number) => {
@@ -51,7 +53,7 @@ const removeItem = () => {
                 <path d="M8 6V4c0-1 1-2 2-2h4c1 0 2 1 2 2v2" />
             </svg>
         </button>
-        <button class="quantity-btn minus" :class="{ 'disabled': currentQuantity === 0 }"
+        <button class="quantity-btn minus" :class="{ 'deactivated': currentQuantity === 0 }"
             @click.stop="handleQuantityChange(-1)" :disabled="currentQuantity === 0">
             -
         </button>
@@ -71,7 +73,7 @@ const removeItem = () => {
 }
 
 .disabled {
-    display: none;
+    display: none !important;
 }
 
 .quantity-btn {

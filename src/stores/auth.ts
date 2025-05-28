@@ -1,7 +1,9 @@
 import { defineStore } from 'pinia'
 import { ref } from 'vue'
+import { API_CONFIG } from '@/utils/api'
 
 interface User {
+  id?: number
   nome: string
   foto: string
   ruolo: string
@@ -10,31 +12,35 @@ interface User {
 export const useAuthStore = defineStore('auth', () => {
   const user = ref<User | null>(null)
   const loading = ref<boolean>(true)
+  const isAuthenticated = ref<boolean>(false)
 
   const checkAuth = async () => {
   try {
     loading.value = true
-    const response = await fetch('http://figliolo.it:5006/v1/auth/check', {
+
+    const checkResponse = await fetch(`${API_CONFIG.BASE_URL}/auth/check`, {
       method: 'GET',
       credentials: 'include'
-    })
+    });
 
-    if (!response.ok) {
-      console.error('User not authenticated')
-      logout()
-      return false
+    if (!checkResponse.ok) {
+      console.error('User not authenticated');
+      logout();
+      return false;
     }
 
-    const data = await response.json()
-    loading.value = false
+    const checkData = await checkResponse.json();
+    loading.value = false;
+    isAuthenticated.value = true;
 
     const userData: User = {
-      nome: data.nome,
-      foto: data.foto_url,
-      ruolo: data.ruolo,
-    }
-    user.value = userData
-    return true
+      nome: checkData.nome,
+      foto: checkData.foto_url,
+      ruolo: checkData.ruolo,
+    };
+    user.value = userData;
+    return true;
+
   } catch (error) {
     logout()
     return false
@@ -47,5 +53,5 @@ export const useAuthStore = defineStore('auth', () => {
     window.location.href = '/login'
   }
 
-  return { user, loading, checkAuth, logout }
+  return { user, loading, isAuthenticated, checkAuth, logout }
 })
