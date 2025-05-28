@@ -85,6 +85,11 @@ const router = createRouter({
       name: 'Gestioni',
       component: GestioniView,
       meta: { autenticated: true, role: ['admin'] }
+    },
+    {
+        path: '/qr',
+        name: 'QR',
+        component: QRView,
     }
   ],
 })

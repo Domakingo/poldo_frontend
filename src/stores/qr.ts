@@ -45,8 +45,33 @@ export const useQRStore = defineStore('qr', () => {
   }
 
 
+  async function checkQR(token: string) {
+    try {
+        const body = JSON.stringify({ token: token })
+        console.log('checkQR')
+      const response = await fetch(`${API_CONFIG.BASE_URL}/qr/check`, { method: 'POST', credentials: 'include', body: body, headers: {'Content-Type': 'application/json'} },
+      )
+
+      if (!response.ok) {
+        console.log(response)
+        return {status: false, data: null}
+      }
+
+      const rawData = await response.json()
+      console.log('rawData', rawData)
+
+    const parsed = JSON.parse(rawData)
+        console.log('parsed', parsed)
+      return {status: true, data: parsed}
+    } catch (error) {
+      console.error('Error check QR:', error)
+      return {status: false, data: null}
+    }
+  }
+
 
   return {
     getQR,
+    checkQR
 }
 })
