@@ -10,10 +10,10 @@ defineProps<{
 }>()
 
 const router = useRouter()
-const authStore = useAuthStore()
 const route = useRoute()
 const showMenu = ref(false)
 const turnoStore = useTurnoStore()
+const authStore = useAuthStore()
 
 // Estrai dinamicamente le rotte autorizzate e i titoli dal meta
 const excluded = ['login', 'autenticazione', 'reports', 'qr', 'Pagine Non Trovata']
@@ -54,6 +54,7 @@ function navigate(path: string) {
   router.push(path)
   showMenu.value = false
 }
+
 </script>
 
 <template>

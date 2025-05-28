@@ -77,13 +77,24 @@ export const useOrdiniStore = defineStore('ordini', () => {
       return null
     }
   }
-  
-  // Recupera gli ordini dei professori
+    // Recupera gli ordini dei professori
   async function fetchProfOrders() {
     loading.value = true
     try {
+      // Get the current user's role and gestione ID
+      const authStore = useAuthStore();
+      const userRole = authStore.user?.ruolo || '';
+      const userGestioneId = authStore.user?.idGestione;
+      
+      let url = `ordini/classi?startDate=${selectedDate.value}&endDate=${selectedDate.value}`;
+      
+      // For gestore users, add a filter for their gestione
+      if (userRole === 'gestore' && userGestioneId) {
+        url += `&idGestione=${userGestioneId}`;
+      }
+      
       const data = await handleRequest<any[]>(
-        `ordini/classi?startDate=${selectedDate.value}&endDate=${selectedDate.value}`,
+        url,
         'Errore nel recupero degli ordini dei professori'
       )
       
@@ -123,13 +134,24 @@ export const useOrdiniStore = defineStore('ordini', () => {
     } finally {
       loading.value = false
     }
-  }
-    // Recupera gli ordini per classe
-  async function fetchClassOrders(turno: number) {
-    loading.value = true
-    try {
+  }    // Recupera gli ordini per classe
+    async function fetchClassOrders(turno: number) {
+      loading.value = true
+      try {
+        // Get the current user's role and gestione ID
+        const authStore = useAuthStore();
+        const userRole = authStore.user?.ruolo || '';
+        const userGestioneId = authStore.user?.idGestione;
+      
+      let url = `ordini/classi?startDate=${selectedDate.value}&endDate=${selectedDate.value}&nTurno=${turno}`;
+      
+      // For gestore users, add a filter for their gestione
+      if (userRole === 'gestore' && userGestioneId) {
+        url += `&idGestione=${userGestioneId}`;
+      }
+      
       const response = await handleRequest<any>(
-        `ordini/classi?startDate=${selectedDate.value}&endDate=${selectedDate.value}&nTurno=${turno}`,
+        url,
         'Errore nel recupero degli ordini per classe'
       )
       
@@ -157,19 +179,18 @@ export const useOrdiniStore = defineStore('ordini', () => {
     } finally {
       loading.value = false
     }
-  }
-  // Funzione per segnare un ordine come preparato
+  }  // Funzione per segnare un ordine come preparato
   async function markOrderAsPrepared(classeId: number | string, turno: number) {
     try {      
       // Update local state immediately for better UI response
       if (turno === 2) {
         // Update professor orders
-        profOrders.value = profOrders.value.map(order => {
+        profOrders.value = profOrders.value.map((order: Order) => {
           if (order.classe === classeId || String(order.classe) === String(classeId)) {
             return {
               ...order,
               preparato: true,
-              prodotti: order.prodotti.map(product => ({
+              prodotti: order.prodotti.map((product: Product) => ({
                 ...product,
                 preparato: true
               }))
@@ -177,14 +198,13 @@ export const useOrdiniStore = defineStore('ordini', () => {
           }
           return order;
         });
-      } else {
-        // Update class orders
-        classOrders.value = classOrders.value.map(order => {
+      } else {        // Update class orders
+        classOrders.value = classOrders.value.map((order: ClassOrder) => {
           if (order.classeId === classeId || String(order.classeId) === String(classeId)) {
             return {
               ...order,
               preparato: true,
-              prodotti: order.prodotti?.map(product => ({
+              prodotti: order.prodotti?.map((product: Product) => ({
                 ...product,
                 preparato: true
               })) || []
@@ -211,75 +231,74 @@ export const useOrdiniStore = defineStore('ordini', () => {
       console.error('Errore nel marcare l\'ordine come preparato:', error)
       return false
     }
-  }
+      }
 
-async function markProductAsPrepared(productId: number, turno: number) {
-  try {
-    // Improved validation that correctly handles turno=0
-    if (productId === undefined || productId === null) {
-      throw new Error('ID prodotto è obbligatorio');
-    }
-    
-    if (turno === undefined || turno === null) {
-      throw new Error('Turno è obbligatorio');
-    }
-
-    // Use the auth store to get user information
-    const authStore = useAuthStore();
-    
+  async function markProductAsPrepared(productId: number, turno: number) {
     try {
-      // If not already authenticated, check authentication
-      if (!authStore.isAuthenticated) {
-        await authStore.checkAuth();
+      // Improved validation that correctly handles turno=0
+      if (productId === undefined || productId === null) {
+        throw new Error('ID prodotto è obbligatorio');
+      }    
+      if (turno === undefined || turno === null) {
+        throw new Error('Turno è obbligatorio');
       }
-    } catch (userError) {
-      // Silently continue, just log the error
-    }
-    
-    // Update the local state for immediate UI feedback
-    // Update classOrders first
-    classOrders.value.forEach(order => {
-      if (order && Array.isArray(order.prodotti)) {
-        order.prodotti.forEach(product => {
-          if (product.idProdotto === productId) {
-            product.preparato = true;
-          }
-        });
-      }
-    });
-    
-    // Update profOrders
-    profOrders.value.forEach(order => {
-      if (order && Array.isArray(order.prodotti)) {
-        order.prodotti.forEach(product => {
-          if (product.idProdotto === productId) {
-            product.preparato = true;
-          }
-        });
-      }
-    });
-    
-    // Call the API
-    await handleRequest<any>(
-      `ordini/prodotti/${productId}/prepara?nTurno=${turno}`,
-      'Errore nel marcare il prodotto come preparato',
-      { 
-        method: 'PUT',
-        headers: {}
-      }
-    )
 
-    // Aggiorna gli ordini in base al turno
-    await fetchProfOrders();
-    if (turno !== 2) {
-      await fetchClassOrders(turno);
-    }
+      // Use the auth store to get user information
+      const authStore = useAuthStore();
+      
+      try {
+        // If not already authenticated, check authentication
+        if (!authStore.isAuthenticated) {
+          await authStore.checkAuth();
+        }
+      } catch (userError) {
+        // Silently continue, just log the error
+      }
+      
+      // Update the local state for immediate UI feedback
+      // Update classOrders first
+      classOrders.value.forEach((order: ClassOrder) => {
+        if (order && Array.isArray(order.prodotti)) {
+          order.prodotti.forEach((product: Product) => {
+            if (product.idProdotto === productId) {
+              product.preparato = true;
+            }
+          });
+        }
+      });
+      
+      // Update profOrders
+      profOrders.value.forEach((order: Order) => {
+        if (order && Array.isArray(order.prodotti)) {
+          order.prodotti.forEach((product: Product) => {
+            if (product.idProdotto === productId) {
+              product.preparato = true;
+            }
+          });
+        }
+      });
+      
+      // Call the API
+      await handleRequest<any>(
+        `ordini/prodotti/${productId}/prepara?nTurno=${turno}`,
+        'Errore nel marcare il prodotto come preparato',
+        { 
+          method: 'PUT',
+          headers: {}
+        }
+      )
 
-    return true
-  } catch (error) {
-    console.error('Errore nel marcare il prodotto come preparato:', error)
-    return false
-  }
+      // Aggiorna gli ordini in base al turno
+      await fetchProfOrders();
+      if (turno !== 2) {
+        await fetchClassOrders(turno);
+      }
+
+      return true
+    } catch (error) {
+      console.error('Errore nel marcare il prodotto come preparato:', error)
+      return false
+    }
 }
 
   // Funzione per modificare la data selezionata
