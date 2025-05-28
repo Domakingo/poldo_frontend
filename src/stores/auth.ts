@@ -19,8 +19,6 @@ export const useAuthStore = defineStore('auth', () => {
       credentials: 'include'
     })
 
-    console.log('Response:', response)
-
     if (!response.ok) {
       console.error('User not authenticated')
       logout()

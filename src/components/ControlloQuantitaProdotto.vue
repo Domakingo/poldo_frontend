@@ -13,7 +13,7 @@ const props = defineProps({
     },
     delete: {
         type: Boolean,
-        default: true 
+        default: true
     }
 })
 
@@ -25,7 +25,7 @@ const currentQuantity = computed(() => {
 })
 
 const handleQuantityChange = (delta: number) => {
-    if (props.disabled) return 
+    if (props.disabled) return
     const newQuantity = currentQuantity.value + delta
 
     if (newQuantity <= 0) {
@@ -36,7 +36,7 @@ const handleQuantityChange = (delta: number) => {
 }
 
 const removeItem = () => {
-    if (props.disabled) return 
+    if (props.disabled) return
     cartStore.removeFromCart(props.productId)
 }
 </script>
@@ -99,11 +99,6 @@ const removeItem = () => {
     background-color: var(--poldo-red);
 }
 
-.quantity-btn.minus.disabled {
-    background-color: var(--disabled);
-    cursor: not-allowed;
-}
-
 .quantity-btn.delete {
     background-color: var(--poldo-accent);
     color: var(--poldo-text);
@@ -115,7 +110,7 @@ const removeItem = () => {
 
 .quantity-btn:disabled,
 .quantity-btn.disabled {
-    background-color: var(--color-background-mute) !important;
+    background-color: var(--disabled) !important;
     cursor: not-allowed;
     opacity: 0.7;
 }
@@ -124,13 +119,5 @@ const removeItem = () => {
 .quantity-btn.disabled:hover {
     filter: none;
     transform: none;
-}
-
-.quantity-btn.minus.disabled {
-    background-color: var(--color-background-mute) !important;
-}
-
-.quantity-btn.plus.disabled {
-    background-color: var(--color-background-mute) !important;
 }
 </style>

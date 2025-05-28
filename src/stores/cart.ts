@@ -31,7 +31,7 @@ export const useCartStore = defineStore(
           })
 
           if (!response.ok) {
-            console.error('nessun ordine gia effettuato x questo turno')
+            console.error('Nessun ordine effettuato per questo turno')
             return false
           }
 

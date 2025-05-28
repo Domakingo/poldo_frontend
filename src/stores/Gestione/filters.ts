@@ -17,7 +17,13 @@ export const useFiltersStore = defineStore('filters', () => {
   const allIngredients = ref<string[]>([])
   const allTags = ref<string[]>([])
 
-  // Fetch dati esistenti
+  const logError = (context: string, err: unknown) => {
+    console.error(`Errore in ${context}:`, {
+      message: err instanceof Error ? err.message : String(err),
+      stack: err instanceof Error ? err.stack : null
+    })
+  }
+
   const fetchIngredients = async () => {
     try {
       const response = await handleRequest<{ nome: string }[]>('ingredienti', 'Errore fetch ingredienti')
@@ -25,7 +31,7 @@ export const useFiltersStore = defineStore('filters', () => {
         .map(item => item.nome)
         .sort((a, b) => a.localeCompare(b))
     } catch (err) {
-      console.error(err)
+      logError('fetchIngredients', err)
       throw err
     }
   }
@@ -37,12 +43,11 @@ export const useFiltersStore = defineStore('filters', () => {
         .map(item => item.nome)
         .sort((a, b) => a.localeCompare(b))
     } catch (err) {
-      console.error(err)
+      logError('fetchTags', err)
       throw err
     }
   }
 
-  // Creazione nuovi elementi
   const addIngredient = async (name: string) => {
     try {
       await fetch(`${API_CONFIG.BASE_URL}/ingredienti`, {
@@ -51,9 +56,9 @@ export const useFiltersStore = defineStore('filters', () => {
         body: JSON.stringify({ nomeIngrediente: name.trim() })
       })
       await fetchIngredients()
-    } catch (error) {
-      console.error('Errore creazione ingrediente:', error)
-      throw error
+    } catch (err) {
+      logError('addIngredient', err)
+      throw err
     }
   }
 
@@ -65,13 +70,12 @@ export const useFiltersStore = defineStore('filters', () => {
         body: JSON.stringify({ nomeTag: name.trim() })
       })
       await fetchTags()
-    } catch (error) {
-      console.error('Errore creazione tag:', error)
-      throw error
+    } catch (err) {
+      logError('addTag', err)
+      throw err
     }
   }
 
-  // Aggiornamento elementi esistenti
   const updateIngredient = async (oldName: string, newName: string) => {
     try {
       await fetch(`${API_CONFIG.BASE_URL}/ingredienti/${encodeURIComponent(oldName)}`, {
@@ -80,9 +84,9 @@ export const useFiltersStore = defineStore('filters', () => {
         body: JSON.stringify({ nuovoNome: newName.trim() })
       })
       await fetchIngredients()
-    } catch (error) {
-      console.error('Errore aggiornamento ingrediente:', error)
-      throw error
+    } catch (err) {
+      logError('updateIngredient', err)
+      throw err
     }
   }
 
@@ -94,13 +98,12 @@ export const useFiltersStore = defineStore('filters', () => {
         body: JSON.stringify({ nuovoNome: newName.trim() })
       })
       await fetchTags()
-    } catch (error) {
-      console.error('Errore aggiornamento tag:', error)
-      throw error
+    } catch (err) {
+      logError('updateTag', err)
+      throw err
     }
   }
 
-  // Inizializzazione store
   const initializeFilters = async () => {
     try {
       await Promise.all([
@@ -108,7 +111,7 @@ export const useFiltersStore = defineStore('filters', () => {
         fetchTags()
       ])
     } catch (err) {
-      console.error('initializeFilters failed:', err)
+      logError('initializeFilters', err)
       throw err
     }
   }

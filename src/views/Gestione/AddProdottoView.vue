@@ -5,7 +5,7 @@ import { useGestioneProductsStore } from '@/stores/Gestione/products'
 import { usePendingChangesStore } from '@/stores/Gestione/pendingChanges'
 import { useFiltersStore } from '@/stores/Gestione/filters'
 import { useAuthStore } from '@/stores/auth'
-import { useGestioniStore } from '@/stores/Admin/gestioni'
+import { useGestioniStore } from '@/stores/gestioni'
 
 const router = useRouter()
 const productsStore = useGestioneProductsStore()

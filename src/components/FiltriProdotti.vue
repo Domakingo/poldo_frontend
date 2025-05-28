@@ -14,6 +14,10 @@
         <div class="filter-section" v-if="maxPrice > minPrice || (maxPrice > 0 && minPrice === 0)">
           <h4>Prezzo</h4>
           <div class="range-slider">
+            <div class="slider-track">
+              <div class="slider-track-bg"></div>
+              <div class="slider-range" :style="rangeStyle"></div>
+            </div>
             <input type="range" :min="minPrice" :max="maxPrice" step="0.1" v-model.number="priceRange.min"
               @input="handleRangeInput('min')" />
             <input type="range" :min="minPrice" :max="maxPrice" step="0.1" v-model.number="priceRange.max"
@@ -76,7 +80,7 @@
 import { defineComponent } from 'vue'
 
 export default defineComponent({
-  name: "Filtri",
+  name: "FiltriProdotti",
   props: {
     ingredients: {
       type: Array as () => string[],
@@ -196,6 +200,16 @@ export default defineComponent({
       this.priceRange.min = newVal;
     }
   },
+  computed: {
+    rangeStyle() {
+      const minPercent = ((this.priceRange.min - this.minPrice) / (this.maxPrice - this.minPrice)) * 100;
+      const maxPercent = ((this.priceRange.max - this.minPrice) / (this.maxPrice - this.minPrice)) * 100;
+      return {
+        left: `${minPercent}%`,
+        width: `${maxPercent - minPercent}%`
+      };
+    }
+  },
   mounted() {
     this.priceRange.max = this.maxPrice;
   },
@@ -255,10 +269,11 @@ export default defineComponent({
   padding: 5px;
   line-height: 1;
   transition: color 0.2s;
+  transition: scale 0.2s;
 }
 
 .close-btn:hover {
-  color: var(--poldo-primary);
+  scale: 1.05;
 }
 
 .sidebar-header {
@@ -278,11 +293,11 @@ export default defineComponent({
 
 .filter-section {
   border-bottom: 1px solid var(--color-border);
-  padding-bottom: 20px;
+  padding-bottom: 15px;
 }
 
 .filter-section h4 {
-  margin-bottom: 12px;
+  margin-bottom: 10px;
   color: var(--poldo-primary);
 }
 
@@ -309,6 +324,31 @@ export default defineComponent({
   justify-content: center;
 }
 
+.slider-track {
+  position: absolute;
+  width: 100%;
+  height: 4px;
+  top: 50%;
+  transform: translateY(-50%);
+  z-index: 1;
+}
+
+.slider-track-bg {
+  position: absolute;
+  width: 100%;
+  height: 100%;
+  background: var(--color-border);
+  border-radius: 2px;
+}
+
+.slider-range {
+  position: absolute;
+  height: 100%;
+  background: var(--poldo-primary);
+  border-radius: 2px;
+  z-index: 2;
+}
+
 .range-slider input[type="range"] {
   position: absolute;
   width: 100%;
@@ -316,6 +356,7 @@ export default defineComponent({
   -webkit-appearance: none;
   background: none;
   height: 40px;
+  z-index: 3;
 }
 
 .range-slider input[type="range"]::-webkit-slider-thumb {
@@ -352,7 +393,7 @@ export default defineComponent({
 .radio-group {
   display: flex;
   flex-direction: column;
-  gap: 12px;
+  gap: 8px;
 }
 
 .item-row {

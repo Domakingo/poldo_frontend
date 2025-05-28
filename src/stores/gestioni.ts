@@ -10,6 +10,27 @@ export interface Gestione {
   nome: string
 }
 
+export const getColorForGestione = (name: string) => {
+  if (!name) return '#5f5f5f';
+
+  let hash = 0;
+  for (let i = 0; i < name.length; i++) {
+    hash = name.charCodeAt(i) + ((hash << 7) - hash);
+    hash |= 0;
+  }
+
+  const hue = Math.abs(hash) % 360;
+  const saturation = 75 + Math.abs(hash) % 20;
+  const lightness = 35 + Math.abs(hash) % 20;
+
+  const l = lightness / 100;
+  const a = saturation / 100 * Math.min(l, 1 - l);
+  const f = (n: number, k = (n + hue / 30) % 12) =>
+    Math.round(255 * (l - a * Math.max(Math.min(k - 3, 9 - k, 1), -1)));
+
+  return `#${f(0).toString(16).padStart(2, '0')}${f(8).toString(16).padStart(2, '0')}${f(4).toString(16).padStart(2, '0')}`;
+};
+
 export const useGestioniStore = defineStore('gestioni', () => {
   const gestioni = ref<Gestione[]>([])
 
@@ -32,7 +53,7 @@ export const useGestioniStore = defineStore('gestioni', () => {
 
       gestioni.value = rawData.map((item: any) => ({
         id: item.idGestione,
-        nome: item.nomeGestione
+        nome: item.nome
       }))
 
     } catch (error) {

@@ -1,59 +1,49 @@
 // API configuration and utility functions
-// This file centralizes API endpoints and common utilities
-
-// API Base URL configuration
 export const API_CONFIG = {
-  // Base URL for all API requests
-  baseURL: 'http://figliolo.it:5000/v1',
-
-  // Endpoint paths (to be appended to baseURL)
-  endpoints: {
-    users: '/utenti',
-    userById: (id: number) => `/utenti/${id}`,
-    banUser: (id: number) => `/utenti/${id}/ban`,
-    unbanUser: (id: number) => `/utenti/${id}/unban`,
-    changeRole: (id: number) => `/utenti/${id}/ruolo`,
-  }
+  BASE_URL: 'http://figliolo.it:5006/v1',
 };
 
-// Helper function for creating proper headers with auth token
-export const getAuthHeaders = () => {
-  const token = localStorage.getItem('token');
-  return {
-    'Authorization': `Bearer ${token}`,
-    'Content-Type': 'application/json'
-  };
-};
+export interface ApiError {
+  message: string;
+}
 
-// Common fetch wrapper with error handling
-export const fetchWithAuth = async (url: string, options: RequestInit = {}) => {
+export const handleRequest = async <T>(
+  endpoint: string,
+  errorMsg: string,
+  init?: RequestInit
+): Promise<T> => {
+  const url = `${API_CONFIG.BASE_URL}${endpoint.startsWith('/') ? endpoint : '/' + endpoint}`;
+
   try {
-    // Make the request
     const response = await fetch(url, {
-      ...options,
-      credentials: 'include'
+      credentials: 'include',
+      mode: 'cors',
+      ...init
     });
 
-    // Handle errors
-    if (!response.ok) {
-      const errorData = await response.json().catch(() => null);
-      throw new Error(
-        errorData?.error ||
-        `Errore API: ${response.status} ${response.statusText}`
-      );
+    // Handle 204/205 (No Content) responses
+    if (response.status === 204 || response.status === 205) {
+      return undefined as unknown as T;
     }
 
-    // Parse response
-    const data = await response.json().catch(() => null);
-    return { success: true, data };
-  } catch (error: any) {
-    console.error('API request failed:', error);
-    return {
-      success: false,
-      error: error.message || 'Si è verificato un errore durante la richiesta'
-    };
-  }
-};
+    if (!response.ok) {
+      const errorText = await response.text();
+      throw new Error(`${response.status} — ${errorText}`);
+    }
 
-// Full URL builder
-export const apiUrl = (endpoint: string) => `${API_CONFIG.baseURL}${endpoint}`;
+    const contentType = response.headers.get('content-type') || '';
+    const isJSON = contentType.includes('application/json');
+
+    if (!isJSON) {
+      console.warn(`Unexpected content-type (${contentType}) for ${endpoint}`);
+      return undefined as unknown as T;
+    }
+
+    return await response.json() as T;
+
+  } catch (error: any) {
+    const message = error instanceof Error ? error.message : 'Unknown error';
+    console.error(`${errorMsg}: ${message}`);
+    throw new Error(`${errorMsg}: ${message}`);
+  }
+}

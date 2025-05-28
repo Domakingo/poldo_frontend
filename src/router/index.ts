@@ -92,7 +92,7 @@ const router = createRouter({
 router.beforeEach(async (to, from, next) => {
     const turnoStore = useTurnoStore()
     if(to.meta.requiresTurno && turnoStore.turnoSelezionato === -1){
-        console.log('Turno non selezionato')
+        console.error('Turno non selezionato')
         next({ name: 'home' })
         return
     }
@@ -106,7 +106,7 @@ router.beforeEach(async (to, from, next) => {
     const logged = await authStore.checkAuth()
 
     if(!logged){
-        console.log('User not authenticated')
+        console.error('User not authenticated')
         next({ name: 'login' })
         return
     }
@@ -120,14 +120,14 @@ router.beforeEach(async (to, from, next) => {
     }
 
     if(userRole === undefined){
-        console.log('User role not defined')
+        console.error('User role not defined')
         next({ name: 'login' })
         return
     }
 
 
     if (!roles.includes(userRole)) {
-        console.log('User not authorized')
+        console.error('User not authorized')
         next({ name: 'home' })
         return
     }

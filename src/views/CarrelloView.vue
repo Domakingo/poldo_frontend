@@ -31,13 +31,11 @@ const haveCartClasseConf = ref<true | false>(false)
 const showQRModal = ref(false)
 
 const allProducts = computed(() => productsStore.products)
-console.log('allProducts', allProducts.value)
 
 const items = computed(() => cartStore.getItems())
 
 async function getCart() {
     const cart = await cartStore.getOrdineByTurno()
-    console.log('cart', cart)
     haveCart.value = cart === true
 }
 
@@ -51,8 +49,6 @@ const itemsDetails = computed(() => {
         }
     })
 })
-
-console.log('itemsDetails', itemsDetails.value)
 
 const hasItems = computed(() => items.value.length > 0)
 
@@ -97,14 +93,13 @@ const clearCart = () => {
 const confermaOrdineAlert = async () => {
     showCheckoutAlert.value = false
     if (selectedMacro.value === 'classe') {
-        console.log('confirmOdrClasse')
+
         const risp = await cartClasseStore.confOrdClasse()
         fetchOrdineClasse()
         altertype.value = risp ? 'success' : 'error'
         checkoutAlertMessage.value = risp ? 'Ordine di classe confermato!' : 'Errore durante la conferma dell\'ordine di classe'
         showCheckoutAlert.value = true
     } else {
-        console.log('confirmOdrPersonale')
         const risp = await cartStore.confirmCart()
         fetchOrdineClasse()
         altertype.value = risp.ok ? 'success' : 'error'
@@ -114,25 +109,17 @@ const confermaOrdineAlert = async () => {
 }
 
 const cancelOdr = () => {
-    console.log('noconfOdr')
     showCheckoutAlert.value = false
 }
 
 const closeAlert = () => {
-    console.log('closeAlert')
     showCheckoutAlert.value = false
     altertype.value = 'confirm'
 }
 
 const selectedMacro = ref<'personale' | 'classe'>('personale')
 
-
-
-
-
-
 watch(ordineClasse, (newVal) => {
-    console.log('watch ordineClasse', newVal)
     if(newVal) {
         haveCartClasseConf.value = newVal.confermato
         isconf.value = newVal.ordine.map(o => ({
@@ -142,16 +129,14 @@ watch(ordineClasse, (newVal) => {
     }else{
         haveCartClasseConf.value =  false
     }
-    
-}, { deep: true })
 
+}, { deep: true })
 
 async function fetchOrdineClasse() {
   try {
     const result = await cartClasseStore.getOrdine()
     ordineClasse.value = result.status ? result.ordine : null
   } catch (error) {
-    console.error("Errore nel fetch ordine classe:", error)
     ordineClasse.value = null
   }
 }
@@ -159,8 +144,6 @@ async function fetchOrdineClasse() {
 onMounted(async () => {
     fetchOrdineClasse();
 })
-
-
 
 async function switchOrdineSingolo(id: number, status: boolean) {
     const res = await cartClasseStore.confOrd(id, status)

@@ -46,7 +46,6 @@ export const useCartClasseStore = defineStore('cartClasse', () => {
       }
 
       const rawData = await response.json()
-      console.log('rawData', rawData)
 
       const parsed: OrdineClasse = {
         confermato: rawData.confermato,
@@ -73,7 +72,6 @@ export const useCartClasseStore = defineStore('cartClasse', () => {
         ),
       }
 
-      console.log('parsed', parsed)
       return {status: true, ordine: parsed}
     } catch (error) {
       console.error('Error fetching cart:', error)
@@ -91,8 +89,6 @@ export const useCartClasseStore = defineStore('cartClasse', () => {
         confermato: status,
       }),
     })
-
-    console.log('result', result)
 
     if (!result.ok) {
       console.error('Error confirming order:', result.statusText)
@@ -112,8 +108,6 @@ export const useCartClasseStore = defineStore('cartClasse', () => {
           nTurno: currentTurno.value,
         }),
       })
-
-      console.log('result', result)
 
       if (!result.ok) {
         console.error('Error confirming order:', result.statusText)

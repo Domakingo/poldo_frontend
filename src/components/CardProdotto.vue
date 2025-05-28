@@ -1,19 +1,30 @@
 <script setup lang="ts">
-import { ref, onMounted } from 'vue'
+import { ref, onMounted, computed } from 'vue'
 import { useFavoritesStore } from '@/stores/favorites'
 import QuantityControl from './ControlloQuantitaProdotto.vue'
 import { useProductsStore } from '@/stores/products'
+import { useGestioniStore, getColorForGestione } from '@/stores/gestioni'
 
 const props = defineProps<{
   productId: number
 }>()
 
-const product = {
-  ...useProductsStore().getProductById(props.productId),
-  disableFlip: false,
-}
-
+const productsStore = useProductsStore()
+const gestioniStore = useGestioniStore()
 const favoritesStore = useFavoritesStore()
+
+const product = computed(() => ({
+  ...productsStore.getProductById(props.productId),
+  disableFlip: false,
+}))
+
+// Trova il nome della gestione in base all'ownerID
+const gestioneName = computed(() => {
+  if (!product.value || !gestioniStore.gestioni.length) return ''
+  const gestione = gestioniStore.gestioni.find(g => g.id === product.value.ownerID)
+  return gestione ? gestione.nome : ''
+})
+
 const isFlipped = ref(false)
 const isFavorited = ref(false)
 
@@ -32,7 +43,7 @@ const toggleFavorite = () => {
 
 // Gestione flip card
 const flipCard = (event: Event) => {
-  if (product.disableFlip) return
+  if (product.value.disableFlip) return
   if (!(event.target as HTMLElement).closest('.quantity-controls')) {
     isFlipped.value = !isFlipped.value
   }
@@ -42,9 +53,14 @@ const flipCard = (event: Event) => {
 <template>
   <div class="card-container" :class="{ 'clickable': !product.disableFlip }" @click="flipCard">
     <div class="card-wrapper" :class="{ 'is-flipped': isFlipped }">
-      <!-- Front Side -->
-      <div class="card-side card-front">
+      <!-- Front Side - Applica grayscale solo quando esaurito -->
+      <div class="card-side card-front" :class="{ 'out-of-stock': product.disponibility <= 0 }">
         <div class="card-prodotto">
+          <!-- Etichetta gestione -->
+          <div v-if="gestioneName" class="gestione-label" :style="{ backgroundColor: getColorForGestione(gestioneName) }">
+            {{ gestioneName }}
+          </div>
+
           <button class="favorite-btn" @click.stop="toggleFavorite">
             <svg v-if="isFavorited" xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24"
               fill="currentColor" stroke="currentColor" stroke-width="1.5">
@@ -74,7 +90,7 @@ const flipCard = (event: Event) => {
         </div>
       </div>
 
-      <!-- Back Side -->
+      <!-- Back Side - Sempre normale -->
       <div class="card-side card-back">
         <h3 class="title">{{ product.title }}</h3>
         <div class="scroll">
@@ -96,7 +112,6 @@ const flipCard = (event: Event) => {
               </div>
             </div>
           </div>
-
         </div>
       </div>
     </div>
@@ -138,6 +153,29 @@ const flipCard = (event: Event) => {
   background-color: var(--card-bg);
   box-shadow: 0 2px 8px var(--card-shadow);
   z-index: 1;
+  transition: filter 0.3s ease, opacity 0.3s ease;
+}
+
+/* Stile per prodotto esaurito (solo front) */
+.card-front.out-of-stock {
+  opacity: 0.75;
+}
+
+.gestione-label {
+  position: absolute;
+  top: -5px;
+  left: -10px;
+  padding: 4px 8px;
+  border-radius: 12px;
+  font-size: 0.75rem;
+  font-weight: 600;
+  color: white;
+  z-index: 3;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+  max-width: 80%;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
 .card-back {
@@ -296,52 +334,6 @@ const flipCard = (event: Event) => {
   z-index: 2;
 }
 
-.quantity-btn {
-  width: 25px;
-  height: 25px;
-  border-radius: 50%;
-  border: none;
-  color: var(--poldo-text);
-  font-size: 1.2rem;
-  font-weight: bold;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  cursor: pointer;
-  padding: 0;
-  line-height: 0;
-  transition: background-color 0.2s;
-}
-
-.quantity-btn.plus {
-  background-color: var(--poldo-green);
-}
-
-.quantity-btn.minus {
-  background-color: var(--poldo-red);
-}
-
-.quantity-btn.minus.disabled {
-  background-color: var(--disabled);
-  cursor: not-allowed;
-}
-
-.quantity-btn.delete {
-  background-color: var(--poldo-accent);
-  color: var(--poldo-text);
-}
-
-.quantity-btn.delete:hover {
-  background-color: var(--poldo-primary);
-}
-
-.quantity {
-  font-size: 1.1rem;
-  font-weight: bold;
-  min-width: 20px;
-  text-align: center;
-}
-
 .favorite-btn {
   position: absolute;
   top: 12px;
@@ -369,13 +361,11 @@ const flipCard = (event: Event) => {
   position: absolute;
   bottom: 10px;
   left: 10px;
-  background: rgba(255, 255, 255, 0.9);
   padding: 4px 8px;
   border-radius: 12px;
   font-size: 0.8rem;
   font-weight: 500;
   color: var(--poldo-primary);
-  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
   z-index: 2;
 }
 
@@ -385,25 +375,18 @@ const flipCard = (event: Event) => {
   right: 10px;
   color: var(--poldo-red);
   font-weight: bold;
-  padding: 8px;
-  background: rgba(255, 255, 255, 0.9);
+  padding: 2px 8px;
   border-radius: 12px;
-  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
 }
 
 @media (prefers-color-scheme: dark) {
   .disponibility-counter {
-    background: rgba(0, 0, 0, 0.7);
     color: var(--poldo-text);
   }
 
   .short-description,
   .description-section p {
     color: var(--poldo-text);
-  }
-
-  .out-of-stock-message {
-    background: rgba(0, 0, 0, 0.7);
   }
 }
 </style>
