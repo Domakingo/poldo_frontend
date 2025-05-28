@@ -5,65 +5,54 @@ import IconMenu from './icons/IconMenu.vue'
 import { useTurnoStore } from '@/stores/turno'
 import { useAuthStore } from '@/stores/auth'
 
+defineProps<{
+  img_profilo: string
+}>()
+
 const router = useRouter()
 const route = useRoute()
 const showMenu = ref(false)
 const turnoStore = useTurnoStore()
 const authStore = useAuthStore()
 
-defineProps<{
-    img_profilo: string
-}>()
+// Estrai dinamicamente le rotte autorizzate e i titoli dal meta
+const excluded = ['login', 'autenticazione', 'reports', 'qr']
 
-const pageTitles = {
-    home: 'Home',
-    prodotti: 'Prodotti',
-    carrello: 'Carrello',
-    ordinazioni: 'Ordinazioni',
-    ordinazioniProf: 'Ordinazioni Professori',
-    utenti: 'Utenti',
-    gestioni: 'Gestioni'
-} as const
-
-type NavRoute = {
-    name: string;
-    path: string;
-    requiresTurno: boolean;
-    rolesAllowed?: string[];
-}
-
-const navRoutes: NavRoute[] = [
-    { name: 'Home', path: '/', requiresTurno: false },
-    { name: 'Prodotti', path: '/prodotti', requiresTurno: true },
-    { name: 'Carrello', path: '/carrello', requiresTurno: true },
-    { name: 'Utenti', path: '/utenti', requiresTurno: false, rolesAllowed: ['admin'] },
-    { name: 'Gestioni', path: '/gestioni', requiresTurno: false, rolesAllowed: ['admin'] },
-    { name: 'Ordinazioni', path: '/gestione/ordinazioni', requiresTurno: false, rolesAllowed: ['admin', 'gestore'] },
-    { name: 'Ordinazioni Professori', path: '/gestione/ordinazioni/prof', requiresTurno: false, rolesAllowed: ['admin', 'gestore'] }
-]
-
-const toggleMenu = () => showMenu.value = !showMenu.value
-
-const pageTitle = computed(() =>
-    pageTitles[route.name as keyof typeof pageTitles] || 'Home'
+const navRoutes = computed(() =>
+  router
+    .getRoutes()
+    .filter(r => r.name && !excluded.includes(r.name.toString()))
+    .filter(r => r.meta?.autenticated)
+    .filter(r => {
+      const roles = r.meta?.role as string[] | undefined
+      return !roles || roles.includes(authStore.user?.ruolo || '')
+    })
+    .map(r => ({
+      name: r.name as string,
+      path: r.path,
+      title: (r.meta?.title as string) || (r.name as string),
+      requiresTurno: !!r.meta?.requiresTurno
+    }))
 )
 
-const hasSelectedTurno = computed(() =>
-    turnoStore.turnoSelezionato !== -1
-)
-
+const hasSelectedTurno = computed(() => turnoStore.turnoSelezionato !== -1)
 const nomeTurno = computed(() => {
-    const turno = turnoStore.turni.find(turno => turno.n === turnoStore.turnoSelezionato)
-    return turno !== undefined ? turno.nome : 'Turno non selezionato'
+  const t = turnoStore.turni.find(t => t.n === turnoStore.turnoSelezionato)
+  return t ? t.nome : 'Nessun turno'
 })
 
-const navigate = (path: string, requiresTurno: boolean) => {
-    if (requiresTurno && !hasSelectedTurno.value) {
-        showMenu.value = false
-        return
-    }
-    router.push(path)
-    showMenu.value = false
+const pageTitle = computed(() => {
+  const current = navRoutes.value.find(r => r.name === route.name)
+  return current ? current.title : 'Home'
+})
+
+function toggleMenu() {
+  showMenu.value = !showMenu.value
+}
+
+function navigate(path: string) {
+  router.push(path)
+  showMenu.value = false
 }
 
 const filteredNavRoutes = computed(() => {
@@ -80,54 +69,32 @@ const filteredNavRoutes = computed(() => {
 </script>
 
 <template>
-    <div class="navbar" :class="{ 'menu-open': showMenu }">
-        <div class="navbar-left">
-            <div class="menu-icon" @click="toggleMenu">
-                <IconMenu />
-            </div>
-            <div class="title-container">
-                <div class="main-title">Poldo {{ pageTitle }}</div>
-                <div
-                    v-if="hasSelectedTurno"
-                    class="turno-subtitle">
-                    {{ nomeTurno }}
-                </div>
-            </div>
-        </div>
-
-        <div
-            v-show="showMenu"
-            class="dropdown-menu"
-        >
-            <div class="dropdown-menu-content">
-                <div
-                    v-for="route in filteredNavRoutes"
-                    :key="route.path"
-                    class="dropdown-menu-item"
-                >
-                    <a
-                        href="#"
-                        @click.prevent="navigate(route.path, route.requiresTurno)"
-                        :class="{ 'disabled': route.requiresTurno && !hasSelectedTurno }"
-                    >
-                        {{ route.name }}
-                        <span
-                            v-if="route.requiresTurno && !hasSelectedTurno"
-                            class="lock-icon"
-                        >
-                            🔒
-                        </span>
-                    </a>
-                </div>
-            </div>
-        </div>
-
-        <img
-            :src="img_profilo"
-            alt="Profilo"
-        />
+  <div class="navbar" :class="{ 'menu-open': showMenu }">
+    <div class="navbar-left">
+      <div class="menu-icon" @click="toggleMenu">
+        <IconMenu />
+      </div>
+      <div class="title-container">
+        <h1 class="main-title">{{ pageTitle }}</h1>
+        <p v-if="hasSelectedTurno" class="turno-subtitle">{{ nomeTurno }}</p>
+      </div>
     </div>
+
+    <div v-show="showMenu" class="dropdown-menu">
+      <div v-for="r in navRoutes" :key="r.path" class="dropdown-item">
+        <div
+          @click="navigate(r.path)"
+          class="menu-link"
+        >
+          {{ r.title }}
+        </div>
+      </div>
+    </div>
+
+    <img :src="img_profilo" alt="Profilo" class="profile-img" />
+</div>
 </template>
+
 
 <style>
 
@@ -154,10 +121,11 @@ const filteredNavRoutes = computed(() => {
     gap: 16px;
 }
 
-.navbar a {
+.navbar .menu-link {
     color: var(--navbar-text);
     text-decoration: none;
     padding: 0.5rem 1rem;
+    border-radius: 10px;
 }
 
 .menu-icon {
@@ -179,14 +147,14 @@ const filteredNavRoutes = computed(() => {
     box-shadow: 0 4px 6px var(--card-shadow);
 }
 
-.dropdown-menu a {
+.dropdown-menu .menu-link {
     display: block;
     padding: 12px 16px;
     text-decoration: none;
     color: white;
 }
 
-.dropdown-menu a.disabled {
+.dropdown-menu .menu-link.disabled {
     opacity: 0.5;
     cursor: not-allowed;
     position: relative;
@@ -197,7 +165,7 @@ const filteredNavRoutes = computed(() => {
     font-size: 0.8rem;
 }
 
-.dropdown-menu a:hover {
+.dropdown-menu .menu-link:hover {
     background-color: var(--poldo-accent);
     color: var(--poldo-text);
 }
