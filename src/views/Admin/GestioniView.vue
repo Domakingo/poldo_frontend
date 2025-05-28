@@ -3,13 +3,26 @@
     <h1 class="page-title">Gestione Entità</h1>
 
     <!-- Alert per messaggi di feedback -->
-    <Alert v-if="alertMessage" :message="alertMessage" :type="alertType" @close="alertMessage = ''" />
-    <!-- Barra di ricerca e pulsante per creare una nuova gestione -->
-    <div class="action-header">
-      <div class="search-container">
+    <Alert
+      v-if="alertMessage"
+      :message="alertMessage"
+      :type="alertType"
+      @close="alertMessage = ''"
+    />    <!-- Barra di ricerca e pulsante per creare una nuova gestione -->
+    <div class="action-header">      <div class="search-container">
         <div class="search-input-group">
-          <input type="text" v-model="searchQuery" placeholder="Cerca gestione per nome o ID..." class="search-input" />
-          <button v-if="searchQuery" @click="searchQuery = ''" class="clear-search" title="Cancella ricerca">
+          <input
+            type="text"
+            v-model="searchQuery"
+            placeholder="Cerca gestione per nome o ID..."
+            class="search-input"
+          />
+          <button
+            v-if="searchQuery"
+            @click="searchQuery = ''"
+            class="clear-search"
+            title="Cancella ricerca"
+          >
             ×
           </button>
         </div>
@@ -38,21 +51,29 @@
                 <td>{{ gestione.idGestione }}</td>
                 <td>{{ gestione.nome }}</td>
                 <td class="actions">
-                  <button class="btn edit" @click="openEditModal(gestione)">
+                  <button
+                    class="btn edit"
+                    @click="openEditModal(gestione)"
+                  >
                     Modifica
                   </button>
-                  <button class="btn delete" @click="openDeleteModal(gestione)">
+                  <button
+                    class="btn delete"
+                    @click="openDeleteModal(gestione)"
+                  >
                     Elimina
                   </button>
-                  <button class="btn users" @click="openUsersModal(gestione)">
+                  <button
+                    class="btn users"
+                    @click="openUsersModal(gestione)"
+                  >
                     Utenti
                   </button>
                 </td>
               </tr>
             </tbody>
           </table>
-        </div>
-        <div v-else-if="gestioni.length > 0" class="no-data">
+        </div>        <div v-else-if="gestioni.length > 0" class="no-data">
           <p>Nessuna gestione trovata con il criterio di ricerca.</p>
         </div>
         <div v-else class="no-data">
@@ -72,14 +93,26 @@
           <form @submit.prevent="handleSubmit">
             <div class="form-group">
               <label for="nome-gestione">Nome Gestione:</label>
-              <input id="nome-gestione" v-model="formData.nome" type="text"
-                placeholder="Inserisci il nome della gestione" required />
+              <input
+                id="nome-gestione"
+                v-model="formData.nome"
+                type="text"
+                placeholder="Inserisci il nome della gestione"
+                required
+              />
             </div>
-            <div v-if="modalMode === 'create'" class="form-group">
+              <div v-if="modalMode === 'create'" class="form-group">
               <label for="utente-id">Utente Associato (opzionale):</label>
-              <select id="utente-id" v-model="formData.utenteId">
+              <select
+                id="utente-id"
+                v-model="formData.utenteId"
+              >
                 <option value="">Nessuno</option>
-                <option v-for="user in availableUsers" :key="user.id" :value="user.id">
+                <option
+                  v-for="user in availableUsers"
+                  :key="user.id"
+                  :value="user.id"
+                >
                   {{ user.name }}
                 </option>
               </select>
@@ -88,7 +121,11 @@
         </div>
         <div class="modal-footer">
           <button class="btn cancel" @click="closeModal">Annulla</button>
-          <button class="btn save" @click="handleSubmit" :disabled="!formData.nome || isLoading">
+          <button
+            class="btn save"
+            @click="handleSubmit"
+            :disabled="!formData.nome || isLoading"
+          >
             {{ isLoading ? 'Salvataggio...' : 'Salva' }}
           </button>
         </div>
@@ -113,7 +150,11 @@
         </div>
         <div class="modal-footer">
           <button class="btn cancel" @click="closeModal">Annulla</button>
-          <button class="btn delete" @click="handleDelete" :disabled="isLoading">
+          <button
+            class="btn delete"
+            @click="handleDelete"
+            :disabled="isLoading"
+          >
             {{ isLoading ? 'Eliminazione...' : 'Elimina' }}
           </button>
         </div>
@@ -132,13 +173,24 @@
           <div class="add-user-form">
             <h3>Aggiungi Utente</h3>
             <div class="form-group">
-              <label for="new-user-id">Seleziona Utente:</label> <select id="new-user-id" v-model="newUserId">
+              <label for="new-user-id">Seleziona Utente:</label>              <select
+                id="new-user-id"
+                v-model="newUserId"
+              >
                 <option value="">Seleziona un utente</option>
-                <option v-for="user in availableUsers" :key="user.id" :value="user.id">
+                <option
+                  v-for="user in availableUsers"
+                  :key="user.id"
+                  :value="user.id"
+                >
                   {{ user.name }}
                 </option>
               </select>
-              <button class="btn add" @click="addUserToGestione" :disabled="!newUserId || isLoading">
+              <button
+                class="btn add"
+                @click="addUserToGestione"
+                :disabled="!newUserId || isLoading"
+              >
                 Aggiungi
               </button>
             </div>
@@ -162,7 +214,10 @@
                   <td>{{ user.mail }}</td>
                   <td>{{ user.ruolo }}</td>
                   <td class="actions">
-                    <button class="btn delete" @click="removeUser(user.idUtente)">
+                    <button
+                      class="btn delete"
+                      @click="removeUser(user.idUtente)"
+                    >
                       Rimuovi
                     </button>
                   </td>
@@ -204,8 +259,8 @@ const searchQuery = ref('');
 
 // Reactive form data
 const formData = reactive({
-  nome: '',
-  utenteId: ''
+    nome: '',
+    utenteId: ''
 });
 
 // Computed properties from stores
@@ -247,15 +302,15 @@ onMounted(async () => {
 
 // Methods
 const fetchGestioni = async () => {
-  isLoading.value = true;
-  try {
-    await gestioneStore.fetchGestioni();
-    gestioni.value = gestioneStore.gestioni;
-  } catch (error) {
-    showAlert('Errore nel caricamento delle gestioni', 'error');
-  } finally {
-    isLoading.value = false;
-  }
+    isLoading.value = true;
+    try {
+        await gestioneStore.fetchGestioni();
+        gestioni.value = gestioneStore.gestioni;
+    } catch (error) {
+        showAlert('Errore nel caricamento delle gestioni', 'error');
+    } finally {
+        isLoading.value = false;
+    }
 };
 
 const openCreateModal = async () => {
@@ -283,16 +338,16 @@ const openCreateModal = async () => {
 };
 
 const openEditModal = (gestione: Gestione) => {
-  modalMode.value = 'edit';
-  selectedGestione.value = gestione;
-  formData.nome = gestione.nome;
-  showModal.value = true;
+    modalMode.value = 'edit';
+    selectedGestione.value = gestione;
+    formData.nome = gestione.nome;
+    showModal.value = true;
 };
 
 const openDeleteModal = (gestione: Gestione) => {
-  modalMode.value = 'delete';
-  selectedGestione.value = gestione;
-  showModal.value = true;
+    modalMode.value = 'delete';
+    selectedGestione.value = gestione;
+    showModal.value = true;
 };
 
 const openUsersModal = async (gestione: Gestione) => {
@@ -340,11 +395,11 @@ const openUsersModal = async (gestione: Gestione) => {
 };
 
 const closeModal = () => {
-  showModal.value = false;
-  selectedGestione.value = null;
-  formData.nome = '';
-  formData.utenteId = '';
-  newUserId.value = '';
+    showModal.value = false;
+    selectedGestione.value = null;
+    formData.nome = '';
+    formData.utenteId = '';
+    newUserId.value = '';
 };
 
 const handleSubmit = async () => {
@@ -455,272 +510,262 @@ const showAlert = (message: string, type: 'success' | 'error' = 'success') => {
 
 <style scoped>
 .gestioni-admin-container {
-  padding: 20px;
-  max-width: 1200px;
-  margin: 0 auto;
+    padding: 20px 0 0 0;
+    max-width: 1200px;
+    margin: 0 auto;
+    background-color: var(--poldo-background);
+    height: calc(100vh - 100px);
+    display: flex;
+    flex-direction: column;
 }
 
 .page-title {
-  margin-bottom: 20px;
-  color: #333;
-  font-size: 2rem;
+    margin-bottom: 20px;
+    color: var(--poldo-text);
+    font-size: 2rem;
 }
 
 .action-header {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  margin-bottom: 20px;
-  flex-wrap: wrap;
-  gap: 15px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 20px;
+    flex-wrap: wrap;
+    gap: 15px;
+    padding: 15px;
+    background-color: var(--card-bg);
+    border-radius: 10px;
+    box-shadow: 0 2px 8px var(--card-shadow);
+    border: 1px solid var(--color-border);
 }
 
 .search-container {
-  flex: 1;
-  min-width: 250px;
+    flex: 1;
+    min-width: 250px;
 }
 
 .search-input-group {
-  position: relative;
-  display: flex;
+    position: relative;
+    display: flex;
 }
 
 .search-input {
-  width: 100%;
-  padding: 8px 12px;
-  border: 1px solid #ccc;
-  border-radius: 4px;
-  font-size: 1rem;
+    width: 100%;
+    padding: 8px 12px;
+    border: 1px solid var(--color-border);
+    border-radius: 25px;
+    font-size: 1rem;
+    background-color: var(--color-background-mute);
+    color: var(--poldo-text);
 }
 
 .clear-search {
-  position: absolute;
-  right: 10px;
-  top: 50%;
-  transform: translateY(-50%);
-  background: none;
-  border: none;
-  font-size: 20px;
-  color: #888;
-  cursor: pointer;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  width: 24px;
-  height: 24px;
-  border-radius: 50%;
-}
-
-.clear-search:hover {
-  background: #eee;
-  color: #333;
+    position: absolute;
+    right: 10px;
+    top: 50%;
+    transform: translateY(-50%);
+    background: none;
+    border: none;
+    font-size: 20px;
+    color: var(--poldo-text-mute);
+    cursor: pointer;
 }
 
 .action-buttons {
-  display: flex;
-  justify-content: flex-end;
+    display: flex;
+    gap: 10px;
 }
 
 .gestioni-list-container {
-  background: var(--poldo-card-bg);
-  border-radius: 8px;
-  box-shadow: 0 2px 10px var(--poldo-card-shadow);
-  overflow: hidden;
-  margin-bottom: 20px;
-  border: 1px solid var(--color-border);
+    background: var(--card-bg);
+    border-radius: 10px;
+    box-shadow: 0 2px 8px var(--card-shadow);
+    overflow: hidden;
+    border: 1px solid var(--color-border);
+    flex: 1;
 }
 
 .gestioni-scroll-wrapper {
-  max-height: 500px;
-  overflow-y: auto;
-  overflow-x: auto;
-}
-
-.gestioni-list {
-  padding: 0;
+    max-height: 100%;
+    overflow-y: auto;
 }
 
 table {
-  width: 100%;
-  border-collapse: collapse;
+    width: 100%;
+    border-collapse: collapse;
+    background-color: var(--card-bg);
+}
+
+/* Larghezze delle colonne */
+.col-id {
+  width: 80px; /* Larghezza fissa per ID */
+}
+
+.col-name {
+  min-width: 200px;
+  width: auto; /* Occupa lo spazio rimanente */
+}
+
+.col-actions {
+  width: 250px; /* Larghezza fissa per azioni */
 }
 
 th,
 td {
-  padding: 12px 15px;
-  text-align: left;
-  border-bottom: 1px solid #eee;
+    padding: 12px 15px;
+    text-align: left;
+    border-bottom: 1px solid var(--color-border);
+    color: var(--poldo-text);
+}
+
+
+.actions {
+    display: flex;
+    justify-content: flex-end;
+    gap: 10px;
+    flex-wrap: nowrap;
 }
 
 th {
-  background-color: #f8f8f8;
-  color: #333;
-  font-weight: 600;
+    background-color: var(--color-background-soft);
+    color: var(--poldo-text);
+    font-weight: 600;
 }
 
 tr:hover {
-  background-color: #f5f5f5;
-}
-
-.actions {
-  display: flex;
-  gap: 8px;
+    background-color: var(--color-background-soft);
 }
 
 .btn {
-  padding: 8px 12px;
-  border: none;
-  border-radius: 4px;
-  cursor: pointer;
-  font-weight: 500;
-  transition: background-color 0.2s;
+    padding: 8px 16px;
+    border: none;
+    border-radius: 25px;
+    cursor: pointer;
+    font-weight: 500;
+    transition: all 0.2s;
+    display: flex;
+    align-items: center;
+    gap: 8px;
 }
 
 .btn.create {
-  background-color: #28a745;
-  color: white;
+    background-color: var(--poldo-primary);
+    color: var(--poldo-background);
 }
 
 .btn.edit {
-  background-color: #0d6efd;
-  color: white;
+    background-color: var(--color-background-mute);
+    color: var(--poldo-text);
 }
 
 .btn.delete {
-  background-color: #dc3545;
-  color: white;
+    background-color: var(--poldo-red);
+    color: white;
 }
 
 .btn.users {
-  background-color: #6c757d;
-  color: white;
+    background-color: var(--color-background-mute);
+    color: var(--poldo-text);
 }
 
-.btn.cancel {
-  background-color: #6c757d;
-  color: white;
-}
-
-.btn.save {
-  background-color: #28a745;
-  color: white;
-}
-
-.btn:disabled {
-  background-color: #ccc;
-  cursor: not-allowed;
+.btn:hover {
+    transform: translateY(-1px);
+    box-shadow: 0 2px 8px var(--poldo-card-shadow);
 }
 
 .modal-overlay {
-  position: fixed;
-  top: 0;
-  left: 0;
-  right: 0;
-  bottom: 0;
-  background-color: rgba(0, 0, 0, 0.5);
-  display: flex;
-  justify-content: center;
-  align-items: center;
-  z-index: 1000;
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background-color: rgba(0, 0, 0, 0.5);
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    z-index: 2;
 }
 
 .modal-content {
-  background-color: white;
-  border-radius: 8px;
-  width: 500px;
-  max-width: 95%;
-  max-height: 90vh;
-  display: flex;
-  flex-direction: column;
-  overflow: hidden;
+    min-width: 500px;
+    max-width: 95%;
+    max-height: 90vh;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+    background-color: var(--card-bg);
+    border-radius: 10px;
+    border: 1px solid var(--color-border);
 }
 
 .modal-header {
-  padding: 15px 20px;
-  border-bottom: 1px solid #eee;
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-}
-
-.modal-header h2 {
-  margin: 0;
-  font-size: 1.5rem;
-}
-
-.close-btn {
-  background: none;
-  border: none;
-  font-size: 24px;
-  cursor: pointer;
-  color: #666;
-}
-
-.modal-body {
-  padding: 20px;
-  overflow-y: auto;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    border-bottom: 1px solid var(--color-border);
+    padding: 20px;
 }
 
 .modal-footer {
-  padding: 15px 20px;
-  border-top: 1px solid #eee;
-  display: flex;
-  justify-content: flex-end;
-  gap: 10px;
+    padding: 15px 20px;
+    border-top: 1px solid #eee;
+    display: flex;
+    justify-content: flex-end;
+    gap: 10px;
 }
 
-.form-group {
-  margin-bottom: 15px;
+.modal-header h2 {
+    color: var(--poldo-text);
 }
 
-.form-group label {
-  display: block;
-  margin-bottom: 5px;
-  font-weight: 500;
+.modal-body {
+    display: flex;
+    flex-direction: column;
+    padding: 20px;
+    gap: 15px;
+}
+
+.modal-body form {
+    display: flex;
+    flex-direction: column;
+    gap: 15px;
+}
+
+.close-btn {
+    background: none;
+    border: none;
+    font-size: 24px;
+    cursor: pointer;
+    color: var(--poldo-text-mute);
 }
 
 .form-group input,
 .form-group select {
-  width: 100%;
-  padding: 8px 12px;
-  border: 1px solid #ccc;
-  border-radius: 4px;
+    background-color: var(--color-background-mute);
+    border: 1px solid var(--color-border);
+    color: var(--poldo-text);
+    border-radius: 25px;
+    padding: 10px 15px;
 }
 
 .warning {
-  color: #dc3545;
-  font-weight: 500;
+    color: var(--poldo-red);
 }
 
 .no-data {
-  padding: 20px;
-  text-align: center;
-  color: #666;
+    color: var(--poldo-text-mute);
+    padding: 20px;
+    text-align: center;
 }
 
-.add-user-form,
-.users-list {
-  margin-bottom: 20px;
+.users-list table {
+    margin-top: 15px;
+    background-color: var(--color-background-soft);
+    border-radius: 10px;
 }
 
-.add-user-form h3,
-.users-list h3 {
-  margin-bottom: 10px;
-  font-size: 1.2rem;
-}
-
-.add-user-form .form-group {
-  display: flex;
-  gap: 10px;
-  align-items: flex-end;
-}
-
-.add-user-form select {
-  flex: 1;
-}
-
-.add-user-form .btn {
-  flex-shrink: 0;
+.users-list th {
+    background-color: var(--color-background-mute);
 }
 
 @media (max-width: 768px) {

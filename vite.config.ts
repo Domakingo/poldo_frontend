@@ -17,7 +17,7 @@ export default defineConfig({
   server: {
     host: true,
     port: 5173,
-    allowedHosts: ['l.figliolo.it'],
+    allowedHosts: ['l.figliolo.it', 'f03a-87-8-184-244.ngrok-free.app'],
     proxy: {
       '/api': {
         target: 'http://figliolo.it:5006',

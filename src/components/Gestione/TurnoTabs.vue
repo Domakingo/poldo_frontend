@@ -36,10 +36,6 @@ const props = defineProps({
 defineEmits(['turnoChange'])
 
 const getTurnoName = (turno: Turno): string => {
-  if (turno.n === 2) {
-    return turno.nome || 'Turno Professori';
-  }
-  
   if (turno.nome) {
     return turno.nome
   }

@@ -91,6 +91,11 @@ const router = createRouter({
       name: 'Pagine Non Trovata',
       component: NotFoundView,
       meta: { autenticated: true }
+    },
+    {
+        path: '/qr',
+        name: 'QR',
+        component: QRView,
     }
   ],
 })
