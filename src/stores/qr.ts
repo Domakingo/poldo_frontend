@@ -1,5 +1,5 @@
 import { defineStore } from 'pinia'
-import { ref, computed } from 'vue'
+import { computed } from 'vue'
 import { useTurnoStore } from './turno'
 import { API_CONFIG } from '@/utils/api'
 

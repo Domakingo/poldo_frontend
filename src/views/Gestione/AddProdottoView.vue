@@ -67,7 +67,7 @@ const submitProduct = async () => {
 
     await productsStore.addProduct({
       ...newProduct.value,
-      imageSrc: imagePreview.value || 'http://figliolo.it:5006/v1/prodotti/image/-1',
+      imageSrc: imagePreview.value || 'https://figliolo.it:5007/v1/prodotti/image/-1',
       ownerID: newProduct.value.ownerID as number
     })
 

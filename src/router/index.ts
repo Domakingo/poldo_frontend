@@ -14,6 +14,7 @@ import UtentiView from '@/views/Admin/UtentiView.vue'
 import GestioniView from '@/views/Admin/GestioniView.vue'
 import LoginView from '@/views/LoginView.vue'
 import { useAuthStore } from '@/stores/auth'
+import QRView from '@/views/QrView.vue'
 
 const router = createRouter({
   history: createWebHistory(import.meta.env.BASE_URL),

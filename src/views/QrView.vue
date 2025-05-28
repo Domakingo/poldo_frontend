@@ -1,44 +1,25 @@
 <script setup lang="ts">
-import { QrcodeStream } from 'vue-qrcode-reader'
-import { ref, onMounted, computed } from 'vue'
+import { ref, onMounted, computed, onUnmounted } from 'vue'
 import { useRouter } from 'vue-router'
 import Alert from '@/components/Alert.vue'
 import { useQRStore } from '@/stores/qr'
+import jsQR from 'jsqr'
 
 const router = useRouter()
 const result = ref<string | null>(null)
 const error = ref<string | null>(null)
-const camera = ref<'auto' | 'rear' | 'front'>('auto')
 const isValidScan = ref(false)
 const qrStore = useQRStore();
+const videoElement = ref<HTMLVideoElement | null>(null)
+const canvasElement = ref<HTMLCanvasElement | null>(null)
+const canvasContext = ref<CanvasRenderingContext2D | null>(null)
+const scanning = ref(false)
+const showScanner = ref(true)
 
-// Stato per il modal di conferma
+// Stato per gli alert
 const showConfirmModal = ref(false);
+const showErrorAlert = ref(false);
 const qrContentForConfirmation = ref<string | null>(null);
-
-// Funzione per disegnare un contorno attorno ai QR code rilevati (per debug)
-const paintOutline = (detectedCodes: any[], ctx: CanvasRenderingContext2D) => {
-  if (detectedCodes && detectedCodes.length > 0) {
-    console.log('QR Code trovato:', detectedCodes);
-    for (const detectedCode of detectedCodes) {
-      const [firstPoint, ...otherPoints] = detectedCode.cornerPoints;
-
-      ctx.strokeStyle = "red";
-      ctx.lineWidth = 5;
-
-      ctx.beginPath();
-      ctx.moveTo(firstPoint.x, firstPoint.y);
-      for (const { x, y } of otherPoints) {
-        ctx.lineTo(x, y);
-      }
-      ctx.lineTo(firstPoint.x, firstPoint.y);
-      ctx.closePath();
-      ctx.stroke();
-      console.log('quadrato disegnato - data: ', detectedCode.rawValue);
-    }
-    onDecode(detectedCodes[0].rawValue);
-  }
-}
 
 const onDecode = (content: string | null) => {
   console.log('ricevuto - contenuto:', content);
@@ -46,65 +27,29 @@ const onDecode = (content: string | null) => {
   if (!content || content.trim() === "") {
     console.warn('nullo o vuoto.');
     error.value = 'QR code letto è vuoto o non valido.';
-    result.value = null;
-    isValidScan.value = false;
-    showConfirmModal.value = false;
+    showErrorAlert.value = true;
     return;
   }
+
   qrStore.checkQR(content);
   result.value = null;
 
   try {
-    // if (content.startsWith('ordine-classe:')) {
-    if (content.startsWith('')) {
-      console.log('[DEBUG] onDecode - QR code VALIDO per "ordine-classe". Order ID:', content.split(':')[1]);
-      qrContentForConfirmation.value = content; // Salva per la conferma
-      isValidScan.value = true; // Necessario per la logica del modal e del risultato
-      error.value = null; // Pulisce errori precedenti
-      showConfirmModal.value = true; // Mostra il modal di conferma
+    if (content.startsWith('ordine-classe:')) {
+      console.log('[DEBUG] QR code VALIDO per "ordine-classe". Order ID:', content.split(':')[1]);
+      qrContentForConfirmation.value = content;
+      isValidScan.value = true;
+      showConfirmModal.value = true;
     } else {
-      console.warn('[DEBUG] onDecode - QR code NON RICONOSCIUTO. Contenuto:', content);
-      // Per QR non riconosciuti, mostra direttamente la pagina di risultato con il contenuto
+      console.warn('[DEBUG] QR code NON RICONOSCIUTO. Contenuto:', content);
       result.value = content;
       isValidScan.value = false;
-      error.value = null; // Pulisce errori di camera, la pagina risultato indicherà formato non valido
-      showConfirmModal.value = false;
+      showScanner.value = false;
     }
   } catch (e: any) {
-    console.error('[DEBUG] onDecode - Errore durante la validazione del contenuto del QR code:', e);
+    console.error('[DEBUG] Errore validazione QR code:', e);
     error.value = `Errore nella validazione del QR code: ${e.message || e}`;
-    isValidScan.value = false;
-    showConfirmModal.value = false;
-  }
-}
-
-const onInit = async (promise: Promise<any>) => {
-  console.log('[DEBUG] onInit - Chiamata. In attesa della promise di inizializzazione della fotocamera...');
-  try {
-    const capabilities = await promise;
-    console.log('[DEBUG] onInit - Fotocamera inizializzata con SUCCESSO. Funzionalità:', capabilities);
-    error.value = null;
-  } catch (e: any) {
-    console.error('[DEBUG] onInit - ERRORE nell\'inizializzazione della fotocamera:', e);
-    console.error('[DEBUG] onInit - Nome errore:', e.name, 'Messaggio:', e.message);
-    // Gestione errori come prima
-    if (e.name === 'NotAllowedError') {
-      error.value = 'Permesso fotocamera NEGATO. Devi autorizzare l\'accesso alla fotocamera nelle impostazioni del browser.';
-    } else if (e.name === 'NotFoundError') {
-      error.value = 'Nessuna fotocamera disponibile. Controlla che una fotocamera sia connessa e non utilizzata da altre applicazioni.';
-    } else if (e.name === 'NotSupportedError') {
-      error.value = 'Accesso HTTPS o localhost richiesto. La fotocamera non può essere usata su HTTP (non sicuro).';
-    } else if (e.name === 'NotReadableError') {
-      error.value = 'La fotocamera è già in uso o bloccata. Chiudi altre app che potrebbero usarla o riavvia il browser.';
-    } else if (e.name === 'OverconstrainedError') {
-      error.value = 'Nessuna fotocamera soddisfa i requisiti. Questo può accadere se la fotocamera selezionata (es. retro) non è disponibile.';
-    } else if (e.name === 'StreamApiNotSupportedError') {
-      error.value = 'L\'API Stream per la fotocamera non è supportata da questo browser. Prova un browser più moderno.';
-    } else if (e.message && e.message.includes('Requested device not found')) {
-        error.value = 'Dispositivo richiesto (fotocamera) non trovato. Potrebbe essere disconnessa o non disponibile.';
-    } else {
-      error.value = `Errore sconosciuto durante l\'inizializzazione della fotocamera: ${e.name} - ${e.message || e}`;
-    }
+    showErrorAlert.value = true;
   }
 }
 
@@ -113,37 +58,34 @@ const resetScanner = () => {
   result.value = null;
   error.value = null;
   isValidScan.value = false;
-  showConfirmModal.value = false; // Resetta anche lo stato del modal
-  qrContentForConfirmation.value = null; // Pulisce il contenuto in attesa
-  console.log('[DEBUG] resetScanner - Stato resettato. `result` è ora null, `qrcode-stream` dovrebbe riapparire.');
+  showConfirmModal.value = false;
+  showErrorAlert.value = false;
+  qrContentForConfirmation.value = null;
+  showScanner.value = true;
+  startScanning();
 }
 
 const handleOrder = () => {
   console.log('[DEBUG] handleOrder - Chiamata.');
   if (result.value && isValidScan.value) {
     const orderId = result.value.split(':')[1];
-    console.log('[DEBUG] handleOrder - Navigazione a /ordini/', orderId);
     router.push(`/ordini/${orderId}`);
-  } else {
-    console.warn('[DEBUG] handleOrder - Tentativo di gestire ordine con result nullo o scansione non valida. Result:', result.value, 'isValidScan:', isValidScan.value);
   }
 }
 
-
 const handleModalConfirm = () => {
-  console.log('[DEBUG] handleModalConfirm - Ordine confermato dall\'utente.');
+  console.log('[DEBUG] Conferma ordine');
   if (qrContentForConfirmation.value && isValidScan.value) {
     result.value = qrContentForConfirmation.value;
-  } else {
-     console.warn('[DEBUG] handleModalConfirm - qrContentForConfirmation o isValidScan non validi.');
+    showConfirmModal.value = false;
+    showScanner.value = false;
   }
-  showConfirmModal.value = false;
 };
 
 const handleModalCancel = () => {
-  console.log('[DEBUG] handleModalCancel - Ordine annullato dall\'utente.');
+  console.log('[DEBUG] Annulla ordine');
   showConfirmModal.value = false;
-  resetScanner(); // Permette una nuova scansione
+  resetScanner();
 };
 
 const confirmationMessage = computed(() => {
@@ -153,27 +95,106 @@ const confirmationMessage = computed(() => {
   return 'Sei sicuro di voler procedere?';
 });
 
+// Avvia scansione
+const startScanning = async () => {
+  try {
+    if (!videoElement.value || !canvasElement.value) return;
+
+    // Configura canvas
+    canvasContext.value = canvasElement.value.getContext('2d');
+    if (!canvasContext.value) return;
+
+    // Ottieni accesso fotocamera
+    const stream = await navigator.mediaDevices.getUserMedia({
+      video: { facingMode: "environment" }
+    });
+
+    videoElement.value.srcObject = stream;
+    videoElement.value.setAttribute("playsinline", "true");
+    videoElement.value.play();
+
+    scanning.value = true;
+    requestAnimationFrame(tick);
+  } catch (err) {
+    console.error('Errore accesso fotocamera:', err);
+    error.value = 'Impossibile accedere alla fotocamera. Assicurati di aver concesso i permessi.';
+    showErrorAlert.value = true;
+    scanning.value = false;
+  }
+};
+
+// Analizza frame
+const tick = () => {
+  if (!scanning.value) return;
+
+  if (videoElement.value && videoElement.value.readyState === videoElement.value.HAVE_ENOUGH_DATA) {
+    if (!canvasElement.value || !canvasContext.value) return;
+
+    canvasElement.value.hidden = false;
+    const video = videoElement.value;
+    const canvas = canvasElement.value;
+
+    // Imposta dimensioni canvas
+    canvas.height = video.videoHeight;
+    canvas.width = video.videoWidth;
+
+    // Disegna frame corrente
+    canvasContext.value.drawImage(video, 0, 0, canvas.width, canvas.height);
+
+    // Cerca QR code
+    const imageData = canvasContext.value.getImageData(0, 0, canvas.width, canvas.height);
+    const code = jsQR(imageData.data, imageData.width, imageData.height, {
+      inversionAttempts: "dontInvert",
+    });
+
+    if (code) {
+      onDecode(code.data);
+      scanning.value = false;
+      showScanner.value = false;
+
+      // Ferma stream video
+      if (videoElement.value && videoElement.value.srcObject) {
+        const tracks = (videoElement.value.srcObject as MediaStream).getTracks();
+        tracks.forEach(track => track.stop());
+      }
+    }
+  }
+
+  if (scanning.value) {
+    requestAnimationFrame(tick);
+  }
+};
+
+// Ferma fotocamera
+const stopCamera = () => {
+  scanning.value = false;
+  if (videoElement.value && videoElement.value.srcObject) {
+    const tracks = (videoElement.value.srcObject as MediaStream).getTracks();
+    tracks.forEach(track => track.stop());
+  }
+};
 
 onMounted(() => {
-  console.log('[DEBUG] Componente QRScanner MONTATO.');
-  if (!('BarcodeDetector' in window)) {
-    console.warn('[DEBUG] BarcodeDetector API non è supportata da questo browser.');
-    error.value = 'Il tuo browser non supporta la scansione QR nativa. Prova un browser più recente (es. Chrome, Edge, Safari).';
-  } else {
-    console.log('[DEBUG] BarcodeDetector supportata.');
-  }
+  console.log('[DEBUG] Componente montato');
+  startScanning();
 });
 
+onUnmounted(() => {
+  stopCamera();
+});
 </script>
 
 <template>
   <div class="qr-scanner-page">
-    <div v-if="error && !showConfirmModal" class="error-message-box">
-      <h4>Errore Scansione</h4>
-      <p>{{ error }}</p>
-      <button @click="resetScanner">Riprova</button>
-    </div>
+    <!-- Alert per errori -->
+    <Alert
+      v-if="showErrorAlert"
+      type="error"
+      :message="error || 'Errore sconosciuto'"
+      @close="resetScanner"
+    />
 
+    <!-- Alert per conferma ordine -->
     <Alert
       v-if="showConfirmModal"
       type="confirm"
@@ -183,17 +204,14 @@ onMounted(() => {
     />
 
     <div class="scanner-container">
-      <div v-if="!result" class="camera-wrapper">
-        <qrcode-stream
-          @init="onInit"
-          :camera="camera"
-          :track="paintOutline"
-        >
-          <div class="scan-overlay">
-            <div class="viewfinder"></div>
-            <div class="scan-line"></div>
-          </div>
-        </qrcode-stream>
+      <div v-if="showScanner" class="camera-wrapper">
+        <video ref="videoElement" class="video-feed" playsinline></video>
+        <canvas ref="canvasElement" class="scan-canvas" hidden></canvas>
+
+        <div class="scan-overlay">
+          <div class="viewfinder"></div>
+          <div class="scan-line"></div>
+        </div>
 
         <div class="scanner-actions">
           <button class="icon-btn back-btn" @click="router.back()" title="Indietro">
@@ -208,13 +226,13 @@ onMounted(() => {
         <div class="result-card">
           <h3 v-if="isValidScan">Ordine riconosciuto!</h3>
           <h3 v-else>Contenuto QR code:</h3>
-          
+
           <div class="result-content">
             <code>{{ result }}</code>
           </div>
 
           <div class="result-actions">
-            <button 
+            <button
               v-if="isValidScan"
               class="confirm-btn"
               @click="handleOrder"
@@ -232,61 +250,29 @@ onMounted(() => {
 </template>
 
 <style scoped>
-/* Placeholder per variabili CSS globali, definiscile nel tuo progetto */
-/* Queste variabili dovrebbero essere definite globalmente per essere accessibili anche da Alert.vue */
-/* :root {
-  --poldo-background: #f0f2f5;
-  --poldo-primary: #efc20c;
-  --poldo-text: #333333;
-  --card-bg: #ffffff;
-  --card-shadow: rgba(0, 0, 0, 0.1);
-  --color-background-soft: #f8f9fa;
-  --poldo-green: #4CAF50;
-  --poldo-red: #F44336;
-  --poldo-accent: #FF9800;
-  --color-background: #fff;
-  --color-text: #333;
-} */
+/* Stili invariati */
+.video-feed {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.scan-canvas {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+}
 
 .qr-scanner-page {
   height: 100vh;
   background: #2c3e50;
   display: flex;
   flex-direction: column;
-  color: var(--poldo-text, #333333); /* Fallback se var non definita */
+  color: var(--poldo-text, #333333);
   font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
 }
-
-.error-message-box {
-  background-color: #ffdddd;
-  border-left: 6px solid #f44336;
-  color: #5c2121;
-  padding: 15px;
-  margin: 10px;
-  border-radius: 8px;
-  box-shadow: 0 2px 4px rgba(0,0,0,0.1);
-  position: relative; /* Per z-index se necessario */
-  z-index: 1001; /* Sopra il QR stream ma sotto il modal Alert se Alert ha z-index più alto */
-}
-.error-message-box h4 {
-  margin-top: 0;
-  margin-bottom: 5px;
-  font-weight: bold;
-}
-.error-message-box button {
-  background-color: #f44336;
-  color: white;
-  border: none;
-  padding: 8px 12px;
-  border-radius: 4px;
-  cursor: pointer;
-  margin-top: 10px;
-  transition: background-color 0.2s;
-}
-.error-message-box button:hover {
-  background-color: #d32f2f;
-}
-
 
 .scanner-container {
   flex: 1;
@@ -303,29 +289,6 @@ onMounted(() => {
   overflow: hidden;
   background-color: #000;
 }
-
-.scan-prompt {
-  position: absolute;
-  top: 20px;
-  left: 50%;
-  transform: translateX(-50%);
-  color: white;
-  background-color: rgba(0,0,0,0.5);
-  padding: 8px 15px;
-  border-radius: 5px;
-  z-index: 10;
-}
-
-:deep(.qrcode-stream-wrapper) {
-  width: 100% !important;
-  height: 100% !important;
-}
-:deep(video) {
-  width: 100% !important;
-  height: 100% !important;
-  object-fit: cover;
-}
-
 
 .scan-overlay {
   position: absolute;
@@ -365,7 +328,6 @@ onMounted(() => {
   50% { transform: translateY(calc(clamp(200px, 70vw, 350px) - 20px)); opacity: 1;}
   100% { transform: translateY(0); opacity: 0.8; }
 }
-
 
 .scanner-actions {
   position: absolute;
@@ -407,7 +369,6 @@ onMounted(() => {
   height: 28px;
   fill: var(--poldo-primary, #efc20c);
 }
-
 
 .scan-result {
   padding: 20px;
@@ -476,5 +437,4 @@ onMounted(() => {
   color: var(--poldo-text, #333333);
   border: 1px solid #ced4da;
 }
-
 </style>

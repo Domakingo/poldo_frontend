@@ -3,7 +3,8 @@ secrets.env
 */.DS_Store
 .DS_Store
 
-
+certs/*
+*.pem
 
 # Logs
 logs
