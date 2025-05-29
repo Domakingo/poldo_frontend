@@ -16,10 +16,10 @@ export default defineConfig({
   server: {
     host: true,
     port: 5173,
-    allowedHosts: ['poldo.figliolo.it'],
+    allowedHosts: ['l.figliolo.it'],
     proxy: {
       '/api': {
-        target: 'http://figliolo.it:5101',
+        target: 'https://figliolo.it:5101',
         changeOrigin: true,
         rewrite: (path) => path.replace(/^\/api/, '/v1'),
         secure: false
