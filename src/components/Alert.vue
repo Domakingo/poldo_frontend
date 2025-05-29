@@ -2,7 +2,7 @@
 import { computed } from 'vue'
 import type { PropType } from 'vue'
 
-type AlertType = 'info' | 'success' | 'error' | 'warning' | 'confirm'
+export type AlertType = 'info' | 'success' | 'error' | 'warning' | 'confirm'
 
 const props = defineProps({
   type: {

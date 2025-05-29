@@ -112,7 +112,7 @@ const confermaOrdineAlert = async () => {
         checkoutAlertMessage.value = risp ? 'Ordine di classe confermato!' : 'Errore durante la conferma dell\'ordine di classe'
         showCheckoutAlert.value = true
     } else {
-        const risp = await cartStore.confirmCart()
+        const risp = await cartStore.confirmCart(null);
         fetchOrdineClasse()
         altertype.value = risp.ok ? 'success' : 'error'
         checkoutAlertMessage.value = risp.message
@@ -161,7 +161,7 @@ async function handleConfirmTimer() {
     showTimePicker.value = false
     console.log('confirmOdrPersonaleProf')
     console.log('selectedTime.value', selectedTime.value+':00')
-    const risp = await cartStore.confirmCart(selectedTime.value+':00')
+    const risp = await cartStore.confirmCart(selectedTime.value ? `${selectedTime.value}:00` : null);
     fetchOrdineClasse()
     altertype.value = risp.ok ? 'success' : 'error'
     checkoutAlertMessage.value = risp.message

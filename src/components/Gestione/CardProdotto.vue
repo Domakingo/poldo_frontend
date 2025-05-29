@@ -40,7 +40,9 @@ const originalData = ref<Product>({
   quantity: product.value?.quantity || 0,
   tags: product.value?.tags || [],
   isActive: product.value?.isActive || false,
-  imageSrc: product.value?.imageSrc || ''
+  imageSrc: product.value?.imageSrc || '',
+  bevanda: product.value?.bevanda || false,
+  ownerID: product.value?.ownerID || 0
 })
 
 // Watch per aggiornamenti esterni al prodotto
@@ -68,7 +70,7 @@ const isImgModified = computed(() => !!imageFile.value)
 // Funzioni immagine
 const resetImage = () => {
   imageFile.value = null
-  localImageSrc.value = product.value.imageSrc
+  localImageSrc.value = product.value?.imageSrc || ''
   checkForChanges()
 }
 
@@ -83,16 +85,16 @@ const handleImageUpload = async (event: Event) => {
 
 // Gestione modifiche
 const checkForChanges = () => {
-  const changes: Partial<ProductChange> = { id: props.productId }
+  const changes: Record<string, string | number | boolean | string[] | undefined> = {};
 
-  // Controllo modifiche per ogni campo
-  const fields: (keyof Omit<ProductChange, 'id'>)[] = [
+  const fields: (keyof ProductChange)[] = [
     'title', 'price', 'quantity', 'description',
-    'ingredients', 'tags', 'isActive', 'imageSrc'
+    'ingredients', 'tags', 'isActive', 'imageSrc', 'bevanda', 'ownerID'
   ]
 
   fields.forEach(field => {
     const currentValue = {
+      id: product.value?.id || 0,
       title: localTitle.value,
       price: localPrice.value,
       quantity: localQuantity.value,
@@ -100,13 +102,13 @@ const checkForChanges = () => {
       ingredients: localIngredients.value,
       tags: localTags.value,
       isActive: localIsActive.value,
-      imageSrc: localImageSrc.value
-    }[field]
+      imageSrc: localImageSrc.value,
+      bevanda: product.value?.bevanda || false,
+      ownerID: product.value?.ownerID || 0
+    }[field];
 
-    const originalValue = originalData.value[field]
-
-    if (JSON.stringify(currentValue) !== JSON.stringify(originalValue)) {
-      changes[field] = currentValue
+    if (JSON.stringify(currentValue) !== JSON.stringify(originalData.value[field])) {
+      changes[field] = currentValue as typeof changes[typeof field];
     }
   })
 
@@ -144,7 +146,9 @@ const isFieldModified = (field: keyof Omit<Product, 'id'>): boolean => {
     ingredients: localIngredients.value,
     tags: localTags.value,
     isActive: localIsActive.value,
-    imageSrc: localImageSrc.value
+    imageSrc: localImageSrc.value,
+    bevanda: product.value?.bevanda || false,
+    ownerID: product.value?.ownerID || 0
   }[field]
 
   const originalValue = originalData.value[field]

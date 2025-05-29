@@ -16,10 +16,17 @@ const selectTurno = () => emit('select')
 const handleOrder = () => {
     if(props.isSelected) window.location.href = '/prodotti'
 }
+
+const getClass = () => {
+    let classes = 'turno-card';
+    if (props.isSelected) classes += ' selected';
+    if (props.isOtherSelected) classes += ' not-selected';
+    return classes;
+}
 </script>
 
 <template>
-    <Card class="turno-card" :class="{ 'selected': isSelected, 'not-selected': isOtherSelected }" @click="selectTurno">
+    <Card :class="getClass()" @click="selectTurno">
         <div class="turno-content">
             <h2>{{ title }}</h2>
             <p>Ordina tra le {{ timeRangeOrder }}</p>

@@ -10,6 +10,8 @@ export type ProductChange = {
   tags?: string[]
   isActive?: boolean
   imageSrc?: string
+  bevanda?: boolean
+  ownerID?: number
 }
 
 type FilterChange = {

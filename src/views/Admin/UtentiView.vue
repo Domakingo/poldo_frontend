@@ -139,6 +139,7 @@
 import { ref, computed, onMounted } from 'vue';
 import Alert from '@/components/Alert.vue';
 import { useUserStore } from '@/stores/Admin/users';
+import type { AlertType } from '@/components/Alert.vue';
 
 export default {
   name: 'UtentiView',
@@ -149,7 +150,7 @@ export default {
     const userStore = useUserStore();
     const searchQuery = ref('');
     const alertMessage = ref('');
-    const alertType = ref('success');
+    const alertType = ref<AlertType>('success');
     const showModal = ref(false);
 
     const users = computed(() => userStore.users);
@@ -158,6 +159,10 @@ export default {
     const validRoles = userStore.validRoles;
     const filters = userStore.filters;
     const selectedUser = computed(() => userStore.selectedUser);
+
+    const fetchUtenti = () => {
+      userStore.fetchUsers();
+    };
 
     const filterBySearch = () => {
       userStore.filterUsersBySearch(searchQuery.value);
@@ -262,6 +267,7 @@ export default {
       alertType,
       showModal,
       selectedUser,
+      fetchUtenti,
       filterBySearch,
       resetFilters,
       banUser,

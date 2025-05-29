@@ -11,6 +11,7 @@ export interface User {
   classe: string;
   bannato: number;
   foto_url?: string;
+  nome: string; // Aggiunta della proprietà 'nome'
 }
 
 // Define the store

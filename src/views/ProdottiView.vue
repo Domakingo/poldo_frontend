@@ -51,16 +51,21 @@ const minPrice = computed(() => Math.min(
   ...productsStore.products.map(p => p.price)
 ))
 
-const handleFiltersApplied = (filters) => {
+const handleFiltersApplied = (filters: {
+  ingredienti?: string[];
+  tags?: string[];
+  attivo?: boolean | null;
+  prezzo?: { min?: number; max?: number };
+}) => {
   activeFilters.value = {
     ingredienti: filters.ingredienti || [],
     tags: filters.tags || [],
-    attivo: filters.attivo,
+    attivo: filters.attivo ?? null,
     prezzo: {
-      min: filters.prezzo.min || 0,
-      max: filters.prezzo.max || Infinity
+      min: filters.prezzo?.min || 0,
+      max: filters.prezzo?.max || Infinity
     }
-  }
+  };
 }
 
 const filteredProducts = computed(() => {

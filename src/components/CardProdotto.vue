@@ -56,7 +56,7 @@ const flipCard = (event: Event) => {
   <div class="card-container" :class="{ 'clickable': !product.disableFlip, 'inactive': !localIsActive}" @click="flipCard">
     <div class="card-wrapper" :class="{ 'is-flipped': isFlipped }">
       <!-- Front Side - Applica grayscale solo quando esaurito -->
-      <div class="card-side card-front" :class="{ 'out-of-stock': product.disponibility <= 0 }">
+      <div class="card-side card-front" :class="{ 'out-of-stock': (product.disponibility ?? 0) <= 0 }">
         <div class="card-prodotto">
           <!-- Etichetta gestione -->
           <div v-if="gestioneName" class="gestione-label"
@@ -84,13 +84,13 @@ const flipCard = (event: Event) => {
             <div v-if="product.price !== undefined" class="price">€{{ product.price.toFixed(2) }}</div>
           </div>
 
-          <div class="disponibility-counter" v-if="product.disponibility > 0">
+          <div class="disponibility-counter" v-if="(product.disponibility ?? 0) > 0">
             Disponibili: {{ product.disponibility }}/{{ product.quantity }}
           </div>
 
-          <QuantityControl v-if="product.disponibility > 0" :product-id="id" :disabled="props.disabled || !localIsActive" />
+          <QuantityControl v-if="(product.disponibility ?? 0) > 0" :product-id="id" :disabled="props.disabled || !localIsActive" />
           <div v-if="!localIsActive" class="out-of-stock-message">Prodotto non attivo</div>
-            <div v-else-if="product.disponibility <= 0" class="out-of-stock-message">Prodotto Esaurito</div>
+          <div v-else-if="(product.disponibility ?? 0) <= 0" class="out-of-stock-message">Prodotto Esaurito</div>
         </div>
       </div>
 
