@@ -5,7 +5,7 @@ import CarrelloView from '../views/CarrelloView.vue'
 import { useTurnoStore } from '../stores/turno'
 import AuthView from '@/views/AuthView.vue'
 import NotFoundView from '@/views/NotFoundView.vue'
-import ReportsView from '@/views/Bar/ReportsView.vue'
+// import ReportsView from '@/views/Bar/ReportsView.vue'
 import AddProdottoView from '../views/Gestione/AddProdottoView.vue'
 import ModificaView from '../views/Gestione/ProdottiView.vue'
 import OrdinazioniView from '@/views/Gestione/OrdinazioniView.vue'
@@ -72,10 +72,6 @@ const router = createRouter({
       component: AuthView
     },
     {
-      path: '/reports',
-      name: 'Reports',
-      component: ReportsView
-    }, {
       path: '/utenti',
       name: 'Utenti',
       component: UtentiView,

@@ -1,16 +1,24 @@
 <template>
   <div class="utenti-admin-container">
-    <h1 class="page-title">Gestione Utenti</h1>
+    <h1 class="page-title">Utenti</h1>
 
     <!-- Alert per messaggi di feedback -->
     <Alert v-if="alertMessage" :message="alertMessage" :type="alertType" @close="alertMessage = ''" />
 
-    <!-- Filtri di ricerca -->
-    <div class="filters-container">
+    <!-- Barra di ricerca e filtri -->
+    <div class="action-header">
+      <div class="search-container">
+        <div class="search-input-group">
+          <input type="text" v-model="searchQuery" placeholder="Cerca utente per email..." class="search-input" />
+          <button v-if="searchQuery" @click="searchQuery = ''" class="clear-search" title="Cancella ricerca">
+            ×
+          </button>
+        </div>
+      </div>
+
       <div class="filter-group">
-        <label for="ruolo">Filtra per Ruolo:</label>
-        <select id="ruolo" v-model="filters.ruolo" @change="fetchUtenti">
-          <option value="">Tutti</option>
+        <select v-model="filters.ruolo" @change="fetchUtenti">
+          <option value="">Tutti i ruoli</option>
           <option v-for="role in validRoles" :key="role" :value="role">
             {{ capitalizeFirst(role) }}
           </option>
@@ -18,9 +26,8 @@
       </div>
 
       <div class="filter-group">
-        <label for="classe">Filtra per Classe:</label>
-        <select id="classe" v-model="filters.classe" @change="fetchUtenti">
-          <option value="">Tutte</option>
+        <select v-model="filters.classe" @change="fetchUtenti">
+          <option value="">Tutte le classi</option>
           <option v-for="classe in classi" :key="classe" :value="classe">
             {{ classe }}
           </option>
@@ -28,66 +35,71 @@
       </div>
 
       <div class="filter-group">
-        <label for="bannato">Stato:</label>
-        <select id="bannato" v-model="filters.bannato" @change="fetchUtenti">
-          <option value="">Tutti</option>
+        <select v-model="filters.bannato" @change="fetchUtenti">
+          <option value="">Tutti gli stati</option>
           <option value="0">Attivi</option>
           <option value="1">Bannati</option>
         </select>
       </div>
 
-      <button class="filter-btn clear" @click="resetFilters">Reset Filtri</button>
-
-      <div class="filter-group search">
-        <input type="text" v-model="searchQuery" placeholder="Cerca per email..." @input="filterBySearch" />
-      </div>
+      <button class="btn clear" @click="resetFilters">Reset Filtri</button>
     </div>
-  </div>
 
     <!-- Tabella utenti -->
-    <div class="table-container">
-      <div class="table-scroll-container">
-        <table v-if="users.length > 0">
-          <thead>
-            <tr>
-              <th>ID</th>
-              <th>Email</th>
-              <th>Ruolo</th>
-              <th>Classe</th>
-              <th>Stato</th>
-              <th>Azioni</th>
-            </tr>
-          </thead>
-          <tbody>
-            <tr v-for="user in filteredUsers" :key="user.idUtente">
-            <td>{{ user.idUtente }}</td>
-            <td>{{ user.mail }}</td>
-            <td>
-              <select v-model="user.ruolo" :id="`role-${user.idUtente}`" @change="changeRole(user)">
-                <option v-for="role in validRoles" :key="role" :value="role">
-                  {{ capitalizeFirst(role) }}
-                </option>
-              </select>
-            </td>
-            <td>{{ user.classe }}</td>
-            <td>
-              <span :class="user.bannato === 1 ? 'status-banned' : 'status-active'">
-                {{ user.bannato === 1 ? 'Bannato' : 'Attivo' }}
-              </span>
-            </td>
-            <td class="actions">
-              <button v-if="user.bannato === 0" class="btn ban" @click="banUser(user.idUtente)">
-                Banna
-              </button>
-              <button v-else class="btn unban" @click="unbanUser(user.idUtente)">
-                Sbanna
-              </button>
-            </td>
-          </tr>
-        </tbody>
-      </table>
-      <div v-else class="no-data">
-        <p>Nessun utente trovato.</p>
+    <div class="utenti-list-container">
+      <div class="utenti-scroll-wrapper">
+        <div v-if="filteredUsers.length > 0" class="utenti-list">
+          <table>
+            <thead>
+              <tr>
+                <th>ID</th>
+                <th>Nome</th>
+                <th>Email</th>
+                <th>Ruolo</th>
+                <th>Classe</th>
+                <th>Azioni</th>
+              </tr>
+            </thead>
+
+            <tbody>
+              <tr v-for="user in filteredUsers" :key="user.idUtente">
+                <td>
+                  <span class="id-container">
+                    {{ user.idUtente }}
+                    <span v-if="user.bannato === 1" class="banned-dot"></span>
+                  </span>
+                </td>
+
+                <td>{{ user.nome }}</td>
+                <td>{{ user.mail }}</td>
+                <td>
+                  <select v-model="user.ruolo" @change="changeRole(user)">
+                    <option v-for="role in validRoles" :key="role" :value="role">
+                      {{ capitalizeFirst(role) }}
+                    </option>
+                  </select>
+                </td>
+                <td>{{ user.classe }}</td>
+                <td class="actions">
+                  <div class="status-toggle">
+                    <div class="switch-container" @click="toggleBanStatus(user)">
+                      <div :class="['switch', { active: user.bannato === 1 }]"></div>
+                    </div>
+                    <span>Bannato</span>
+                  </div>
+
+                </td>
+              </tr>
+            </tbody>
+
+          </table>
+        </div>
+        <div v-else-if="users.length > 0" class="no-data">
+          <p>Nessun utente trovato con il criterio di ricerca.</p>
+        </div>
+        <div v-else class="no-data">
+          <p>Nessun utente trovato.</p>
+        </div>
       </div>
     </div>
 
@@ -105,26 +117,12 @@
             <p><strong>Ruolo:</strong> {{ capitalizeFirst(selectedUser.ruolo) }}</p>
 
             <div class="form-group">
-              <label for="user-class">Classe:</label>
-              <select id="user-class" v-model="selectedUser.classe">
+              <label>Classe:</label>
+              <select v-model="selectedUser.classe">
                 <option v-for="classe in classi" :key="classe" :value="classe">
                   {{ classe }}
                 </option>
               </select>
-            </div>
-
-            <div class="form-group">
-              <label for="user-status">Stato:</label>
-              <div class="status-toggle">
-                <span>Attivo</span>
-                <Switch :checked="selectedUser.bannato === 1" @change="toggleUserStatus" />
-                <span>Bannato</span>
-              </div>
-            </div>
-
-            <div v-if="selectedUser.foto_url" class="user-image">
-              <p><strong>Foto:</strong></p>
-              <img :src="selectedUser.foto_url" alt="Foto profilo" />
             </div>
           </div>
         </div>
@@ -140,26 +138,20 @@
 <script lang="ts">
 import { ref, computed, onMounted } from 'vue';
 import Alert from '@/components/Alert.vue';
-import Switch from '@/components/Switch.vue';
 import { useUserStore } from '@/stores/Admin/users';
 
 export default {
   name: 'UtentiView',
   components: {
-    Alert,
-    Switch
+    Alert
   },
   setup() {
-    // Use the user store
     const userStore = useUserStore();
-
-    // Local state for UI
     const searchQuery = ref('');
     const alertMessage = ref('');
     const alertType = ref('success');
     const showModal = ref(false);
 
-    // Accessors to store state
     const users = computed(() => userStore.users);
     const filteredUsers = computed(() => userStore.filteredUsers);
     const classi = computed(() => userStore.classi);
@@ -167,7 +159,6 @@ export default {
     const filters = userStore.filters;
     const selectedUser = computed(() => userStore.selectedUser);
 
-    // UI functions
     const filterBySearch = () => {
       userStore.filterUsersBySearch(searchQuery.value);
     };
@@ -182,18 +173,32 @@ export default {
       userStore.clearSelectedUser();
     };
 
-    const toggleUserStatus = (value) => {
+    const toggleUserStatus = () => {
       if (selectedUser.value) {
-        selectedUser.value.bannato = value ? 1 : 0;
+        selectedUser.value.bannato = selectedUser.value.bannato === 1 ? 0 : 1;
       }
     };
+
+    const toggleBanStatus = async (user: any) => {
+      try {
+        if (user.bannato === 1) {
+          const success = await userStore.unbanUser(user.idUtente);
+          if (success) showAlert('Utente sbloccato con successo', 'success');
+        } else {
+          const success = await userStore.banUser(user.idUtente);
+          if (success) showAlert('Utente bannato con successo', 'success');
+        }
+      } catch (error) {
+        showAlert('Errore durante il cambio di stato bannato', 'error');
+      }
+    };
+
 
     const saveUserChanges = async () => {
       if (!selectedUser.value) return;
 
       try {
         const success = await userStore.saveUserChanges(selectedUser.value);
-
         if (success) {
           showAlert('Utente aggiornato con successo', 'success');
           closeModal();
@@ -201,75 +206,50 @@ export default {
           throw new Error(userStore.error || 'Errore durante l\'aggiornamento dell\'utente');
         }
       } catch (error) {
-        console.error('Errore:', error);
         showAlert('Errore durante l\'aggiornamento dell\'utente', 'error');
       }
     };
 
-    const banUser = async (userId) => {
+    const banUser = async (userId: number) => {
       try {
         const success = await userStore.banUser(userId);
-        if (success) {
-          showAlert('Utente bannato con successo', 'success');
-        } else {
-          throw new Error(userStore.error);
-        }
+        if (success) showAlert('Utente bannato con successo', 'success');
       } catch (error) {
-        console.error('Errore:', error);
         showAlert('Errore durante il ban dell\'utente', 'error');
       }
     };
 
-    const unbanUser = async (userId) => {
+    const unbanUser = async (userId: number) => {
       try {
         const success = await userStore.unbanUser(userId);
-        if (success) {
-          showAlert('Utente sbloccato con successo', 'success');
-        } else {
-          throw new Error(userStore.error);
-        }
+        if (success) showAlert('Utente sbloccato con successo', 'success');
       } catch (error) {
-        console.error('Errore:', error);
         showAlert('Errore durante lo sblocco dell\'utente', 'error');
       }
     };
 
-    const changeRole = async (user) => {
+    const changeRole = async (user: any) => {
       try {
         const success = await userStore.changeUserRole(user.idUtente, user.ruolo);
-        if (success) {
-          showAlert('Ruolo aggiornato con successo', 'success');
-        } else {
-          throw new Error(userStore.error);
-        }
+        if (success) showAlert('Ruolo aggiornato con successo', 'success');
       } catch (error) {
-        console.error('Errore:', error);
         showAlert('Errore durante la modifica del ruolo', 'error');
       }
     };
-    // Funzioni di utilità
-    const showAlert = (message, type = 'success') => {
+
+    const showAlert = (message: string, type: 'success' | 'error' = 'success') => {
       alertMessage.value = message;
       alertType.value = type;
-
-      // Nascondi l'alert dopo 5 secondi
-      setTimeout(() => {
-        alertMessage.value = '';
-      }, 5000);
+      setTimeout(() => { alertMessage.value = ''; }, 5000);
     };
 
-    const capitalizeFirst = (str) => {
-      if (!str) return '';
+    const capitalizeFirst = (str: string) => {
       return str.charAt(0).toUpperCase() + str.slice(1);
     };
 
-    // Carica i dati all'avvio
     onMounted(() => {
-      fetchUtenti();
+      userStore.fetchUsers();
     });
-
-    // Alias per consistenza con il resto del codice
-    const fetchUtenti = userStore.fetchUsers;
 
     return {
       users,
@@ -282,7 +262,6 @@ export default {
       alertType,
       showModal,
       selectedUser,
-      fetchUtenti,
       filterBySearch,
       resetFilters,
       banUser,
@@ -290,6 +269,7 @@ export default {
       changeRole,
       closeModal,
       toggleUserStatus,
+      toggleBanStatus,
       saveUserChanges,
       capitalizeFirst
     };
@@ -299,116 +279,176 @@ export default {
 
 <style scoped>
 .utenti-admin-container {
-  padding: 20px;
+  padding: 20px 0 0 0;
   max-width: 1200px;
   margin: 0 auto;
+  background-color: var(--poldo-background);
+  height: calc(100vh - 100px);
+  display: flex;
+  flex-direction: column;
 }
 
 .page-title {
-  font-size: 1.8rem;
   margin-bottom: 20px;
-  color: var(--color-heading);
+  color: var(--poldo-text);
+  font-size: 2rem;
 }
 
-.filters-container {
+.action-header {
   display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 20px;
   flex-wrap: wrap;
   gap: 15px;
-  background-color: var(--color-background-soft);
   padding: 15px;
-  border-radius: 8px;
-  align-items: center;
+  background-color: var(--card-bg);
+  border-radius: 10px;
+  box-shadow: 0 2px 8px var(--card-shadow);
+  border: 1px solid var(--color-border);
+}
+
+.search-container {
+  flex: 1;
+  min-width: 250px;
+}
+
+.search-input-group {
+  position: relative;
+  display: flex;
+}
+
+.search-input {
+  width: 100%;
+  padding: 8px 12px;
+  border: 1px solid var(--color-border);
+  border-radius: 25px;
+  font-size: 1rem;
+  background-color: var(--color-background-mute);
+  color: var(--poldo-text);
+}
+
+.clear-search {
+  position: absolute;
+  right: 10px;
+  top: 50%;
+  transform: translateY(-50%);
+  background: none;
+  border: none;
+  font-size: 20px;
+  color: var(--poldo-text-mute);
+  cursor: pointer;
 }
 
 .filter-group {
   display: flex;
-  flex-direction: column;
+}
+
+.filter-group select {
+  padding: 8px 12px;
+  border: 1px solid var(--color-border);
+  border-radius: 25px;
+  background-color: var(--color-background-mute);
+  color: var(--poldo-text);
   min-width: 150px;
 }
 
-.filter-group label {
-  font-size: 0.85rem;
-  color: var(--color-text);
-  opacity: 0.8;
-  margin-bottom: 5px;
-}
-
-.filter-group select,
-.filter-group input {
-  padding: 8px 12px;
-  border-radius: 4px;
-  border: 1px solid var(--color-border);
-  background-color: var(--color-background);
-}
-
-.filter-group.search {
-  flex-grow: 1;
-}
-
-.filter-group.search input {
-  width: 100%;
-}
-
-.filter-btn {
-  padding: 8px 16px;
-  border: none;
-  border-radius: 4px;
-  cursor: pointer;
-  font-weight: 500;
-  transition: background-color 0.2s;
-  align-self: flex-end;
-  margin-top: 20px;
-}
-
-.filter-btn.clear {
-  background-color: var(--color-background-soft);
-  color: var(--color-text);
-  opacity: 0.8;
-}
-
-.filter-btn.clear:hover {
-  background-color: var(--color-background-mute);
-}
-
-.table-container {
-  overflow-x: auto;
-  background-color: var(--card-bg);
-  border-radius: 8px;
+.utenti-list-container {
+  background: var(--card-bg);
+  border-radius: 10px;
   box-shadow: 0 2px 8px var(--card-shadow);
+  overflow: hidden;
+  border: 1px solid var(--color-border);
+  flex: 1;
 }
 
-.table-scroll-container {
-  max-height: calc(100vh - 300px);
+.utenti-scroll-wrapper {
+  max-height: 100%;
   overflow-y: auto;
 }
 
 table {
   width: 100%;
   border-collapse: collapse;
+  background-color: var(--card-bg);
+}
+
+th,
+td {
+  padding: 12px 15px;
+  text-align: left;
+  color: var(--poldo-text);
 }
 
 th {
   background-color: var(--color-background-soft);
-  text-align: left;
-  padding: 12px 15px;
+  color: var(--poldo-text);
   font-weight: 600;
-  color: var(--color-heading);
-  border-bottom: 2px solid var(--color-border);
+  position: sticky;
 }
 
-td {
-  padding: 12px 15px;
+tr {
   border-bottom: 1px solid var(--color-border);
-  vertical-align: middle;
+  align-content: center;
 }
 
-tr:last-child td {
-  border-bottom: none;
+tr:hover {
+  background-color: var(--color-background-soft);
 }
 
-tr.banned {
-  background-color: var(--red);
-  opacity: 0.9;
+.id-container {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.banned-dot {
+  width: 10px;
+  height: 10px;
+  background-color: red;
+  border-radius: 50%;
+}
+
+.btn {
+  padding: 8px 16px;
+  border: none;
+  border-radius: 25px;
+  cursor: pointer;
+  font-weight: 500;
+  transition: all 0.2s;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.btn.ban {
+  background-color: var(--poldo-red);
+  color: white;
+}
+
+.btn.unban {
+  background-color: var(--poldo-green);
+  color: white;
+}
+
+.btn.clear {
+  background-color: var(--color-background-mute);
+  color: var(--poldo-text);
+}
+
+.btn.cancel {
+  background-color: var(--color-background-mute);
+  color: var(--poldo-text);
+}
+
+.btn.save {
+  background-color: var(--poldo-primary);
+  color: var(--poldo-background);
+}
+
+.btn:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 2px 8px var(--poldo-card-shadow);
 }
 
 .status-active,
@@ -421,192 +461,126 @@ tr.banned {
 }
 
 .status-active {
-  background-color: var(--green);
-  color: var(--color-background);
-  opacity: 0.8;
+  background-color: var(--poldo-green);
+  color: white;
 }
 
 .status-banned {
-  background-color: var(--red);
-  color: var(--color-background);
-  opacity: 0.8;
+  background-color: var(--poldo-red);
+  color: white;
 }
 
-.actions {
-  /* display: flex; */
-  gap: 8px;
-}
-
-.btn {
-  padding: 6px 12px;
-  border: none;
-  border-radius: 4px;
-  cursor: pointer;
-  font-weight: 500;
-  transition: background-color 0.2s;
-}
-
-.btn.ban {
-  background-color: var(--red);
-  color: var(--color-background);
-}
-
-.btn.ban:hover {
-  background-color: var(--red);
-  opacity: 0.8;
-}
-
-.btn.unban {
-  background-color: var(--green);
-  color: var(--color-background);
-}
-
-.btn.unban:hover {
-  background-color: var(--green);
-  opacity: 0.8;
-}
-
-.btn.edit {
-  background-color: var(--poldo-accent);
-  color: var(--color-background);
-}
-
-.btn.edit:hover {
-  background-color: var(--poldo-primary);
-}
-
-.btn.save {
-  background-color: var(--poldo-primary);
-  color: var(--color-text);
-}
-
-.btn.save:hover {
-  background-color: var(--poldo-accent);
-}
-
-.btn.cancel {
-  background-color: var(--color-background-soft);
-  color: var(--color-text);
-}
-
-.btn.cancel:hover {
-  background-color: var(--color-background-mute);
-}
-
-.no-data {
-  padding: 30px;
-  text-align: center;
-  color: var(--color-text);
-  opacity: 0.7;
-}
-
-/* Modal */
 .modal-overlay {
   position: fixed;
   top: 0;
   left: 0;
-  width: 100%;
-  height: 100%;
+  right: 0;
+  bottom: 0;
   background-color: rgba(0, 0, 0, 0.5);
   display: flex;
   justify-content: center;
   align-items: center;
-  z-index: 1000;
+  z-index: 2;
 }
 
 .modal-content {
+  min-width: 500px;
+  max-width: 95%;
+  max-height: 90vh;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
   background-color: var(--card-bg);
-  border-radius: 8px;
-  width: 90%;
-  max-width: 500px;
-  max-height: 80vh;
-  overflow-y: auto;
-  box-shadow: 0 2px 10px var(--card-shadow);
+  border-radius: 10px;
+  border: 1px solid var(--color-border);
 }
 
 .modal-header {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  padding: 15px 20px;
   border-bottom: 1px solid var(--color-border);
-}
-
-.modal-header h2 {
-  margin: 0;
-  font-size: 1.25rem;
-  color: var(--color-heading);
-}
-
-.close-btn {
-  background: none;
-  border: none;
-  font-size: 1.5rem;
-  cursor: pointer;
-  color: var(--color-text);
-  opacity: 0.6;
-}
-
-.close-btn:hover {
-  opacity: 1;
+  padding: 20px;
 }
 
 .modal-body {
   padding: 20px;
 }
 
-.user-details {
+.modal-footer {
+  padding: 15px 20px;
+  border-top: 1px solid var(--color-border);
   display: flex;
-  flex-direction: column;
-  gap: 15px;
+  justify-content: flex-end;
+  gap: 10px;
+}
+
+.close-btn {
+  background: none;
+  border: none;
+  font-size: 24px;
+  cursor: pointer;
+  color: var(--poldo-text-mute);
 }
 
 .form-group {
-  display: flex;
-  flex-direction: column;
-  gap: 5px;
+  margin-bottom: 15px;
 }
 
 .form-group label {
+  display: block;
+  margin-bottom: 5px;
   font-weight: 500;
-  color: var(--color-text);
 }
 
-.form-group select,
-.form-group input {
-  padding: 8px 12px;
-  border-radius: 4px;
+.form-group select {
+  width: 100%;
+  padding: 10px;
+  border-radius: 25px;
   border: 1px solid var(--color-border);
-  background-color: var(--color-background);
+  background-color: var(--color-background-mute);
 }
 
 .status-toggle {
   display: flex;
   align-items: center;
   gap: 10px;
-}
-
-.user-image {
-  margin-top: 10px;
-}
-
-.user-image img {
-  max-width: 100%;
-  height: auto;
-  border-radius: 4px;
-  margin-top: 5px;
-}
-
-.modal-footer {
-  display: flex;
   justify-content: flex-end;
-  gap: 10px;
-  padding: 15px 20px;
-  border-top: 1px solid #e9ecef;
+}
+
+.switch-container {
+  position: relative;
+  width: 50px;
+  height: 24px;
+  background-color: var(--color-border);
+  border-radius: 12px;
+  cursor: pointer;
+}
+
+.switch {
+  position: absolute;
+  top: 2px;
+  left: 2px;
+  width: 20px;
+  height: 20px;
+  background-color: white;
+  border-radius: 50%;
+  transition: all 0.3s ease;
+}
+
+.switch.active {
+  left: calc(100% - 22px);
+  background-color: var(--poldo-primary);
+}
+
+.no-data {
+  color: var(--poldo-text-mute);
+  padding: 20px;
+  text-align: center;
 }
 
 @media (max-width: 768px) {
-  .filters-container {
+  .action-header {
     flex-direction: column;
     align-items: stretch;
   }
@@ -617,11 +591,16 @@ tr.banned {
 
   .actions {
     flex-direction: column;
+    gap: 5px;
   }
 
-  td,
-  th {
-    padding: 10px;
+  .btn {
+    width: 100%;
+    margin-bottom: 2px;
+  }
+
+  .modal-content {
+    min-width: 90%;
   }
 }
 </style>

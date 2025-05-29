@@ -19,7 +19,7 @@ export const useUserStore = defineStore('user', () => {
   const users = ref<User[]>([]);
   const filteredUsers = ref<User[]>([]);
   const classi = ref<string[]>([]);
-  const validRoles = ['paninaro', 'studente', 'prof', 'gestore', 'admin'];
+  const validRoles = ['paninaro', 'studente', 'prof', 'gestore', 'admin', 'terminale', 'segreteria'];
   const selectedUser = ref<User | null>(null);
   const isLoading = ref(false);
   const error = ref('');
