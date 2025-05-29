@@ -28,6 +28,7 @@ const gestioneName = computed(() => {
 
 const isFlipped = ref(false)
 const isFavorited = ref(false)
+const localIsActive = ref(product.value?.isActive ?? true)
 
 const id = ref(props.productId)
 
@@ -52,7 +53,7 @@ const flipCard = (event: Event) => {
 </script>
 
 <template>
-  <div class="card-container" :class="{ 'clickable': !product.disableFlip }" @click="flipCard">
+  <div class="card-container" :class="{ 'clickable': !product.disableFlip, 'inactive': !localIsActive}" @click="flipCard">
     <div class="card-wrapper" :class="{ 'is-flipped': isFlipped }">
       <!-- Front Side - Applica grayscale solo quando esaurito -->
       <div class="card-side card-front" :class="{ 'out-of-stock': product.disponibility <= 0 }">
@@ -87,8 +88,9 @@ const flipCard = (event: Event) => {
             Disponibili: {{ product.disponibility }}/{{ product.quantity }}
           </div>
 
-          <QuantityControl v-if="product.disponibility > 0" :product-id="id" :disabled="props.disabled" />
-          <div v-else class="out-of-stock-message">Prodotto esaurito</div>
+          <QuantityControl v-if="product.disponibility > 0" :product-id="id" :disabled="props.disabled || !localIsActive" />
+          <div v-if="!localIsActive" class="out-of-stock-message">Prodotto non attivo</div>
+            <div v-else-if="product.disponibility <= 0" class="out-of-stock-message">Prodotto Esaurito</div>
         </div>
       </div>
 
@@ -264,6 +266,20 @@ const flipCard = (event: Event) => {
   color: white;
   width: 100%;
   font-weight: bold;
+}
+
+.switch-btn.inactive {
+  background: var(--disabled);
+}
+
+/* Stile per card inattiva */
+.card-container.inactive .card-front {
+  filter: grayscale(100%);
+  opacity: 0.7;
+}
+
+.card-container.inactive .edit-btn {
+  opacity: 0.7;
 }
 
 .short-description {
