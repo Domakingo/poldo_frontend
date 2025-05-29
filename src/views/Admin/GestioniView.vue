@@ -1,6 +1,6 @@
 <template>
   <div class="gestioni-admin-container">
-    <h1 class="page-title">Gestione Entità</h1>
+    <h1 class="page-title">Gestioni</h1>
 
     <!-- Alert per messaggi di feedback -->
     <Alert
@@ -586,8 +586,9 @@ const showAlert = (message: string, type: 'success' | 'error' = 'success') => {
 }
 
 .gestioni-scroll-wrapper {
-    max-height: 100%;
+    height: calc(100vh - 250px);
     overflow-y: auto;
+    position: relative;
 }
 
 table {
@@ -608,6 +609,10 @@ table {
 
 .col-actions {
   width: 250px; /* Larghezza fissa per azioni */
+}
+
+thead {
+    position: sticky !important;
 }
 
 th,
